@@ -161,7 +161,7 @@ function deriveCells(log, lang) {
       const src  = details.before || details.after || details;
       const name = src.name || log.entityLabel || "—";
       return {
-        subtitle: isEs ? "Nombre de la Categoría" : "Category Name",
+        subtitle: "",
         before:   name,
         after:    null,
       };
@@ -171,7 +171,7 @@ function deriveCells(log, lang) {
       const src  = details.before || details.after || details;
       const name = src.name || log.entityLabel || "—";
       return {
-        subtitle: isEs ? "Nombre de la Ubicación" : "Location Name",
+        subtitle: "",
         before:   name,
         after:    null,
       };
