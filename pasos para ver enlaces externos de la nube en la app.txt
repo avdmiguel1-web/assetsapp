@@ -1,0 +1,166 @@
+Este es el paso a paso exacto para dejarlo listo en Azure Portal / Microsoft Entra y luego configurarlo en Vercel.
+
+1. Crear la app en Azure / Microsoft Entra
+
+Entra a Microsoft Entra admin center.
+Ve a Identity o Microsoft Entra ID > Applications > App registrations.
+Haz clic en New registration.
+En Name, escribe algo como fleetcore-remote-files.
+En Supported account types, elige:
+Accounts in this organizational directory only.
+No necesitas Redirect URI para este caso servidor-servidor.
+Haz clic en Register.
+Fuente:
+
+How to register an app in Microsoft Entra ID
+2. Sacar MS_CLIENT_ID y MS_TENANT_ID
+
+Abre la app recién creada.
+En la pestaña Overview verás:
+Application (client) ID -> este es MS_CLIENT_ID
+Directory (tenant) ID -> este es MS_TENANT_ID
+Copia ambos.
+3. Crear MS_CLIENT_SECRET
+
+Dentro de la app, ve a Certificates & secrets.
+En Client secrets, haz clic en New client secret.
+Pon una descripción, por ejemplo vercel-fleetcore.
+Elige vencimiento.
+Recomendación: corto o medio plazo.
+Haz clic en Add.
+Copia inmediatamente el campo Value.
+Ese valor es MS_CLIENT_SECRET.
+No copies Secret ID; debe ser Value.
+Fuentes:
+
+Add and manage app credentials in Microsoft Entra ID
+Register a Microsoft Entra app and create a service principal
+4. Agregar permisos Files.Read.All y Sites.Read.All
+
+Ve a API permissions.
+Haz clic en Add a permission.
+Selecciona Microsoft Graph.
+Selecciona Application permissions.
+Importante: Application permissions, no Delegated permissions.
+Busca y agrega:
+Files.Read.All
+Sites.Read.All
+Haz clic en Add permissions.
+Fuentes:
+
+Web API app registration and API permissions
+Microsoft Graph permissions reference: Files.Read.All
+Microsoft Graph permissions reference: Sites.Read.All
+5. Dar Admin consent
+
+Sigue en API permissions.
+Verás los permisos agregados.
+Haz clic en Grant admin consent for <tu tenant>.
+Confirma con Yes.
+Luego haz clic en Refresh.
+Verifica que el estado diga:
+Granted for <tu tenant>.
+Si el botón no aparece o está deshabilitado, necesitas una cuenta con rol administrador, normalmente:
+
+Global Administrator, o
+Cloud Application Administrator / Application Administrator según el caso.
+Fuentes:
+
+Grant tenant-wide admin consent to an application
+Web API app registration and API permissions
+6. Configurar las variables en Vercel
+En Vercel:
+
+Abre tu proyecto.
+Ve a Settings > Environment Variables.
+Crea estas 3 variables:
+MS_TENANT_ID=tu-directory-tenant-id
+MS_CLIENT_ID=tu-application-client-id
+MS_CLIENT_SECRET=el-value-del-client-secret
+No llevan comillas.
+
+Dónde sale cada una:
+
+MS_TENANT_ID: Directory (tenant) ID
+MS_CLIENT_ID: Application (client) ID
+MS_CLIENT_SECRET: Value del secret en Certificates & secrets
+Recomendación:
+
+márcalas para Production, Preview y Development si quieres probar en todos los entornos.
+7. Redeploy
+Después de guardar esas variables:
+
+Haz un nuevo deploy en Vercel.
+Prueba otra vez un enlace privado de OneDrive/SharePoint.
+8. Validación rápida
+Si quedó bien:
+
+la app ya no debería mostrar el error de autenticación de OneDrive para archivos privados compartidos válidos;
+PDFs e imágenes deberían resolver por el proxy de la app;
+Excel/Word deberían abrir mejor si el archivo puede resolverse con Graph.
+Notas importantes
+
+Files.Read.All y Sites.Read.All son permisos amplios a nivel tenant.
+Son correctos para resolver archivos compartidos desde servidor, pero conviene usarlos solo si realmente lo necesitas.
+En producción Microsoft recomienda certificado antes que client secret, pero para arrancar el secret está bien.
+Si quieres, te doy ahora un checklist visual exacto de qué menú abrir y qué botón tocar dentro del portal, usando los nombres tal como aparecen en pantalla.
+
+
+Archivo adjunto del usuario
+ok, ya estoy en la ventana de la nueva app (tiene nombre "appgestiondeactivos") ahora indicame donde debo entrar para seguir los pasos del punto 2 (Sacar MS_CLIENT_ID y MS_TENANT_ID).
+
+
+Ya estás exactamente donde necesitas estar.
+
+En esa misma pantalla, dentro de Información general, mira el bloque Información esencial:
+
+Id. de aplicación (cliente)
+Ese es tu MS_CLIENT_ID
+Id. de directorio (inquilino)
+Ese es tu MS_TENANT_ID
+En tu captura se ven aquí:
+
+MS_CLIENT_ID = valor de Id. de aplicación (cliente)
+MS_TENANT_ID = valor de Id. de directorio (inquilino)
+No tienes que entrar a otro menú para ese paso.
+
+El siguiente paso ahora es crear el MS_CLIENT_SECRET:
+
+En el bloque de la derecha, haz clic en Agregar un certificado o secreto
+o en el menú izquierdo entra a Administrar > Certificados y secretos.
+Cuando estés ahí, te indico exactamente qué botón pulsar y qué valor copiar.
+Importante:
+
+No uses Identificador de objeto
+No uses URI de id. de aplicación
+Solo necesitas:
+Id. de aplicación (cliente) -> MS_CLIENT_ID
+Id. de directorio (inquilino) -> MS_TENANT_ID
+Cuando abras Certificados y secretos, mándame la siguiente captura o dime qué opciones ves, y te guío con el MS_CLIENT_SECRET.
+
+
+Archivo adjunto del usuario
+ok te adjunto captura de mi ventana actual, donde hago click para ejecutar el tercer paso (Dar Admin consent)
+
+
+
+En esa misma pantalla, arriba del listado de permisos, haz clic en este botón:
+
+Conceder consentimiento de administrador para RESPALDO TRIME, C.A.
+
+Está en la barra de acciones, justo al lado de Agregar un permiso.
+
+Después:
+
+haz clic en ese botón,
+confirma en la ventana emergente con Sí o Aceptar,
+luego pulsa Actualizar.
+Cómo sabes que quedó bien:
+
+en la columna Estado, Files.Read.All y Sites.Read.All deben cambiar de
+No concedido para ...
+a algo como
+Concedido para RESPALDO TRIME, C.A.
+Ahora mismo en tu captura todavía no está concedido, así que ese es el siguiente clic correcto.
+
+Si después de pulsarlo te sale un error o te pide permisos, envíame la captura y te digo exactamente qué falta.
