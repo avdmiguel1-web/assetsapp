@@ -34,11 +34,11 @@ function getPreviewKind(file) {
   if (type.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"].includes(ext)) return "image";
   if (type === "application/pdf" || ext === "pdf") return "pdf";
   if (
-    type.includes("excel") ||
-    type.includes("spreadsheet") ||
-    type.includes("word") ||
-    type.includes("presentation") ||
-    ["xls", "xlsx", "csv", "doc", "docx", "ppt", "pptx"].includes(ext)
+    type.includes("excel")
+    || type.includes("spreadsheet")
+    || type.includes("word")
+    || type.includes("presentation")
+    || ["xls", "xlsx", "csv", "doc", "docx", "ppt", "pptx"].includes(ext)
   ) return "office";
   return null;
 }
@@ -101,7 +101,7 @@ function PreviewModal({ file, onClose }) {
             const payload = await response.json();
             if (payload?.error) errorMessage = payload.error;
           } catch {
-            // Ignore parse failures and keep the HTTP status message.
+            // Ignore parse failures.
           }
           throw new Error(errorMessage);
         }
@@ -220,7 +220,7 @@ function FilesBlock({ title, icon: Icon, color, files }) {
   );
 }
 
-export default function AssetDetailModal({ open, onClose, asset, onEdit }) {
+export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) {
   const t = useT();
   const { FLAG_MAP, locations } = useApp();
   if (!open || !asset) return null;
@@ -243,8 +243,6 @@ export default function AssetDetailModal({ open, onClose, asset, onEdit }) {
     : rentalKind === "time"
       ? formatTimeRangeValue(rentalInfo.rentalStartTime, rentalInfo.rentalEndTime, locale)
       : "";
-    ? (formatRemainingRentalLabel(rentalEndDate, t.lang) || "—")
-    : "—";
 
   return (
     <div className="modal-overlay" onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -272,31 +270,32 @@ export default function AssetDetailModal({ open, onClose, asset, onEdit }) {
 
         <div className="modal-body" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
           <div>
-            <SectionTitle icon={<Tag size={13} />}>Informacion del Activo</SectionTitle>
-            {asset.assetId && <Row label="ID Activo" value={asset.assetId} />}
-            <Row label="Placa / Serial" value={asset.plate} />
-            <Row label="Marca" value={asset.brand} />
-            <Row label="Modelo" value={asset.model} />
-            <Row label="Categoria" value={asset.category} />
-            <Row label="Estado" value={<span className={`badge ${STATUS[asset.status] || "badge-muted"}`}>{asset.status}</span>} />
-            <Row label="Pais" value={`${FLAG_MAP[asset.country] || ""} ${asset.country}`} />
-            <Row label="Ubicacion" value={<span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} color="var(--accent-blue)" />{asset.location}</span>} />
+            <SectionTitle icon={<Tag size={13} />}>{t.detail.assetInfo || "Informacion del Activo"}</SectionTitle>
+            {asset.assetId && <Row label={t.detail.assetId || "ID Activo"} value={asset.assetId} />}
+            <Row label={t.detail.plate || "Placa / Serial"} value={asset.plate} />
+            <Row label={t.detail.brand || "Marca"} value={asset.brand} />
+            <Row label={t.detail.model || "Modelo"} value={asset.model} />
+            <Row label={t.detail.category || "Categoria"} value={asset.category} />
+            <Row label={t.detail.status || "Estado"} value={<span className={`badge ${STATUS[asset.status] || "badge-muted"}`}>{asset.status}</span>} />
+            <Row label={t.detail.country || "Pais"} value={`${FLAG_MAP[asset.country] || ""} ${asset.country}`} />
+            <Row label={t.detail.location || "Ubicacion"} value={<span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} color="var(--accent-blue)" />{asset.location}</span>} />
             <Row label={t.detail.address || "Direccion"} value={currentLocation?.address || "—"} />
             <Row label={t.detail.locationDescription || "Descripcion ubicacion"} value={currentLocation?.description || "—"} />
-            <Row label={t.detail.rented || "Alquilado"} value={rentedLabel} />
-            <Row label={t.detail.rentalFrom || "Desde"} value={rentalStartDate ? formatDateInputValue(rentalStartDate, t.lang === "en" ? "en-US" : "es-VE") : "—"} />
-            <Row label={t.detail.rentalTo || "Hasta"} value={rentalEndDate ? formatDateInputValue(rentalEndDate, t.lang === "en" ? "en-US" : "es-VE") : "—"} />
-            <Row label="Registrado" value={asset.createdAt ? new Date(asset.createdAt).toLocaleString("es-VE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} />
+            {isRentalAsset && rentalKind === "date" && <Row label={t.detail.daysRemaining || "Dias restantes"} value={remainingRentalLabel || "—"} />}
+            {isRentalAsset && rentalKind === "time" && <Row label={t.detail.hoursRemaining || "Horas restantes"} value={remainingRentalLabel || "—"} />}
+            {isRentalAsset && rentalKind === "date" && <Row label={t.detail.rentalDate || "Fecha alquiler"} value={rentalRangeLabel || "—"} />}
+            {isRentalAsset && rentalKind === "time" && <Row label={t.detail.rentalTime || "Hora alquiler"} value={rentalRangeLabel || "—"} />}
+            <Row label={t.detail.registered || "Registrado"} value={asset.createdAt ? new Date(asset.createdAt).toLocaleString(locale, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} />
             {asset.description && (
               <div style={{ marginTop: 14 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>Descripcion</div>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>{t.detail.description || "Descripcion"}</div>
                 <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, background: "var(--bg-elevated)", padding: "10px 12px", borderRadius: "var(--radius-md)" }}>{asset.description}</div>
               </div>
             )}
-            <FilesBlock title="Documentos" icon={FileText} color="var(--accent-blue)" files={asset.docs} />
-            <FilesBlock title="Facturas de compra" icon={Receipt} color="var(--accent-green)" files={asset.invoices} />
-            <FilesBlock title="Reparaciones" icon={Wrench} color="var(--accent-amber)" files={asset.repairs} />
-            <FilesBlock title="Accesorios" icon={Package} color="var(--accent-purple)" files={asset.accessories} />
+            <FilesBlock title={t.detail.docs || "Documentos"} icon={FileText} color="var(--accent-blue)" files={asset.docs} />
+            <FilesBlock title={t.detail.invoices || "Facturas de compra"} icon={Receipt} color="var(--accent-green)" files={asset.invoices} />
+            <FilesBlock title={t.detail.repairs || "Reparaciones"} icon={Wrench} color="var(--accent-amber)" files={asset.repairs} />
+            <FilesBlock title={t.detail.accessories || "Accesorios"} icon={Package} color="var(--accent-purple)" files={asset.accessories} />
           </div>
 
           <div>
@@ -304,17 +303,17 @@ export default function AssetDetailModal({ open, onClose, asset, onEdit }) {
               <LiveTelemetry deviceId={deviceId} gpsProvider={asset.gpsProvider || "flespi"} />
             ) : (
               <div style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-lg)", padding: 20 }}>
-                <SectionTitle icon={<Satellite size={13} />}>Telemetria GPS</SectionTitle>
+                <SectionTitle icon={<Satellite size={13} />}>{t.detail.telemetry || "Telemetria GPS"}</SectionTitle>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 10, lineHeight: 1.7 }}>
-                  Este activo no tiene telemetria GPS.
+                  {t.detail.noTelemetry || "Este activo no tiene telemetria GPS."}
                   <br />
-                  Editalo y activa <strong>"Tiene Telemetria GPS"</strong> para ver datos en vivo.
+                  {t.detail.editHint || "Editalo y activa la telemetria GPS para ver datos en vivo."}
                 </div>
               </div>
             )}
             {asset.profilePhoto && (
               <div style={{ marginTop: 16 }}>
-                <SectionTitle icon={null}>Foto del Activo</SectionTitle>
+                <SectionTitle icon={null}>{t.detail.photo || "Foto del Activo"}</SectionTitle>
                 <ResolvedImage src={asset.profilePhoto} alternateSrc={asset.profilePhotoSource} alt={asset.brand} style={{ width: "100%", borderRadius: "var(--radius-lg)", objectFit: "cover", maxHeight: 200, marginTop: 8, border: "1px solid var(--border-subtle)" }} />
               </div>
             )}
@@ -322,7 +321,7 @@ export default function AssetDetailModal({ open, onClose, asset, onEdit }) {
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>Cerrar</button>
+          <button className="btn btn-secondary" onClick={onClose}>{t.detail.close || "Cerrar"}</button>
         </div>
       </div>
     </div>
@@ -360,26 +359,10 @@ function LiveTelemetry({ deviceId, gpsProvider = "flespi" }) {
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-              {/* Velocidad */}
               <div style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
                 <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", color: "var(--accent-blue)", textTransform: "uppercase", marginBottom: 4 }}>Velocidad</div>
                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 16, color: "var(--text-primary)", fontWeight: 600 }}>{telemetry.speed != null ? `${telemetry.speed} km/h` : "—"}</div>
               </div>
-              {/*
-                COMBUSTIBLE — Visible solo cuando el activo tiene telemetría activa.
-                Estado actual: N/A (sin hardware instalado).
-                TODO: Integrar con Teltonika FMC150.
-                Parámetros Flespi candidatos (AVL codec FMC150):
-                  "can.fuel.level"    (AVL ID  50) → % nivel vía CAN bus  [PREFERIDO]
-                  "fuel.level.liter"  (AVL ID  48) → litros vía OBD/CAN
-                  "can.fuel.used.gps" (AVL ID 223) → consumo acumulado GPS
-                Cuando estén disponibles, sustituir "N/A" por:
-                  telemetry.fuelLevelPercent != null
-                    ? `${telemetry.fuelLevelPercent}%`
-                    : telemetry.fuelLevelLiters != null
-                      ? `${telemetry.fuelLevelLiters} L`
-                      : "N/A"
-              */}
               <div style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
                 <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", color: "var(--accent-amber)", textTransform: "uppercase", marginBottom: 4 }}>Combustible</div>
                 <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 16, color: "var(--text-muted)", fontWeight: 600 }}>

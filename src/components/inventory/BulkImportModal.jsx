@@ -311,7 +311,7 @@ export default function BulkImportModal({ open, onClose }) {
   };
 
   const downloadTemplate = () => {
-    downloadSpreadsheetXml("plantilla-activos-excel.xml", [
+    downloadSpreadsheetXml("Plantilla-Activos.xml", [
       {
         name: "Plantilla Activos",
         columnWidth: 25,

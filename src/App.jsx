@@ -10,7 +10,7 @@ import SyncBanner from "./components/ui/SyncBanner";
 import AuthPage       from "./pages/AuthPage";
 import DashboardPage  from "./pages/DashboardPage";
 import LocationsPage  from "./pages/LocationsPage";
-import TransfersPage  from "./pages/TransfersPage";
+import TransfersPage  from "./pages/TransfersPageFixed";
 import GpsHistoryPage from "./pages/GpsHistoryPage";
 import SettingsPage   from "./pages/SettingsPage";
 import CategoriesPage from "./pages/CategoriesPage";

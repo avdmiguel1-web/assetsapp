@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS locations (
   country     TEXT        NOT NULL,
   address     TEXT,
   description TEXT,
+  rental_start_date DATE,
+  rental_end_date   DATE,
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -29,6 +31,10 @@ CREATE TABLE IF NOT EXISTS assets (
   location            TEXT,
   location_id         TEXT        REFERENCES locations(id) ON DELETE SET NULL,
   description         TEXT,
+  rental_start_date   DATE,
+  rental_end_date     DATE,
+  rental_start_time   TIME,
+  rental_end_time     TIME,
   has_telemetry       BOOLEAN     DEFAULT FALSE,
   flespi_device_id    TEXT,
   profile_photo       TEXT,        -- URL (Supabase Storage) or base64 fallback
@@ -49,8 +55,14 @@ CREATE TABLE IF NOT EXISTS transfers (
   asset_id      TEXT        REFERENCES assets(id) ON DELETE CASCADE,
   from_location TEXT,
   from_country  TEXT,
+  from_address  TEXT,
   to_location   TEXT,
   to_country    TEXT,
+  to_address    TEXT,
+  rental_start_date DATE,
+  rental_end_date   DATE,
+  rental_start_time TIME,
+  rental_end_time   TIME,
   ts            TIMESTAMPTZ DEFAULT NOW()
 );
 

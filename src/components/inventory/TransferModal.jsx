@@ -33,7 +33,7 @@ export default function TransferModal({ open, onClose, asset }) {
           <button className="btn btn-secondary btn-icon btn-sm" onClick={onClose}><X size={15} /></button>
         </div>
         <div className="modal-body">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: 14, background: "var(--bg-elevated)", borderRadius: "var(--radius-md)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: 14, borderRadius: "var(--radius-md)" }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>ORIGEN</div>
               <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>{asset.brand} {asset.model}</div>

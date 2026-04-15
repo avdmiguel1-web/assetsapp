@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useApp } from "../stores/AppContext";
 import { useAuth } from "../stores/AuthContext";
 import { useT } from "../i18n/index.jsx";
-import AssetDetailModal from "../components/inventory/AssetDetailModal";
+import AssetDetailModal from "../components/inventory/AssetDetailModalFixed";
 import AssetModal from "../components/inventory/AssetModal";
 import BulkImportModal from "../components/inventory/BulkImportModal";
 import ResolvedImage from "../components/common/ResolvedImage";
@@ -45,12 +45,13 @@ const KPI_FILTERS = {
 export default function DashboardPage() {
   const t = useT();
   const { canDo } = useAuth();
-  const { assets, countries, CATEGORIES, deleteAsset, FLAG_MAP } = useApp();
+  const { assets, countries, locations, CATEGORIES, deleteAsset, FLAG_MAP } = useApp();
   const [kpiFilter, setKpiFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterLocation, setFilterLocation] = useState("");
   const [detailAsset, setDetailAsset] = useState(null);
   const [editAsset, setEditAsset] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -65,6 +66,14 @@ export default function DashboardPage() {
 
   const tabs = ["all", ...countries];
   const countByCountry = (country) => assets.filter((a) => a.country === country).length;
+  const locationLookup = useMemo(
+    () => new Map(locations.map((location) => [location.id, location])),
+    [locations]
+  );
+  const locationOptions = useMemo(
+    () => [...new Set(locations.map((location) => location.name).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [locations]
+  );
 
   const handleKpi = (key) => {
     setKpiFilter((current) => (current === key ? "all" : key));
@@ -72,6 +81,7 @@ export default function DashboardPage() {
     setSearch("");
     setFilterCat("");
     setFilterStatus("");
+    setFilterLocation("");
   };
 
   const filtered = useMemo(() => {
@@ -82,7 +92,9 @@ export default function DashboardPage() {
         if (activeTab !== "all" && asset.country !== activeTab) return false;
         if (filterCat && asset.category !== filterCat) return false;
         if (filterStatus && asset.status !== filterStatus) return false;
-        if (q && !`${asset.brand} ${asset.model} ${asset.plate} ${asset.assetId} ${asset.id} ${asset.location}`.toLowerCase().includes(q)) return false;
+        if (filterLocation && asset.location !== filterLocation) return false;
+        const linkedLocation = locationLookup.get(asset.locationId) || locations.find((location) => location.name === asset.location && location.country === asset.country);
+        if (q && !`${asset.brand} ${asset.model} ${asset.plate} ${asset.assetId} ${asset.id} ${asset.location} ${linkedLocation?.address || ""} ${linkedLocation?.description || ""}`.toLowerCase().includes(q)) return false;
         return true;
       })
       // Ordenamiento alfabético A-Z por nombre del activo (brand + model)
@@ -91,11 +103,11 @@ export default function DashboardPage() {
         const nameB = `${b.brand} ${b.model}`.toLowerCase();
         return nameA.localeCompare(nameB, undefined, { sensitivity: "base" });
       });
-  }, [assets, kpiFilter, activeTab, search, filterCat, filterStatus]);
+  }, [assets, activeTab, filterCat, filterLocation, filterStatus, kpiFilter, locationLookup, locations, search]);
 
   useEffect(() => {
     setPage(1);
-  }, [kpiFilter, activeTab, search, filterCat, filterStatus]);
+  }, [kpiFilter, activeTab, search, filterCat, filterStatus, filterLocation]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -121,9 +133,10 @@ export default function DashboardPage() {
     setSearch("");
     setFilterCat("");
     setFilterStatus("");
+    setFilterLocation("");
   };
 
-  const hasActiveFilter = kpiFilter !== "all" || search || filterCat || filterStatus;
+  const hasActiveFilter = kpiFilter !== "all" || search || filterCat || filterStatus || filterLocation;
 
   const kpiLabel = {
     all: "",
@@ -140,7 +153,7 @@ export default function DashboardPage() {
   ];
 
   const exportAssets = () => {
-    downloadSpreadsheetXml("dashboard-activos.xml", [
+    downloadSpreadsheetXml("Dashboard-Activos.xml", [
       {
         name: "Activos",
         rows: buildAssetExportRows(filtered),
@@ -215,6 +228,9 @@ export default function DashboardPage() {
                     setActiveTab(tab);
                     setKpiFilter("all");
                     setSearch("");
+                    setFilterCat("");
+                    setFilterStatus("");
+                    setFilterLocation("");
                   }}
                   style={{
                     padding: "12px 16px",
@@ -267,6 +283,10 @@ export default function DashboardPage() {
             <select className="form-select" style={{ width: "auto", fontSize: 12 }} value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}>
               <option value="">{t.dashboard.allStatuses}</option>
               {statusOptions.map((status) => <option key={status.key} value={status.key}>{status.label}</option>)}
+            </select>
+            <select className="form-select" style={{ width: "auto", fontSize: 12 }} value={filterLocation} onChange={(event) => setFilterLocation(event.target.value)}>
+              <option value="">{t.dashboard.allLocations || "Todas las ubicaciones"}</option>
+              {locationOptions.map((location) => <option key={location} value={location}>{location}</option>)}
             </select>
             {hasActiveFilter && (
               <button className="btn btn-ghost btn-sm" style={{ color: "var(--accent-red)" }} onClick={clearAll}>

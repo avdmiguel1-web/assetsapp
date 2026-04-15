@@ -54,9 +54,27 @@ git init
 git add .
 git commit -m "FleetCore v1.0"
 # Crea un repo en github.com y luego:
-git remote add origin https://github.com/TU_USUARIO/fleetcore.git
+git remote add origin https://github.com/trime25/gestionactivosgps.git
 git push -u origin main
 ```
+
+
+Solución al error de carga
+1
+Renombrar la rama local
+Cambiar de 'master' a 'main'
+GitHub utiliza main por defecto, pero las versiones locales de Git a veces inician con master. Ejecuta este comando para renombrarla:
+
+Bash
+git branch -M main
+2
+Vincular y subir los archivos
+Empujar los cambios al repositorio remoto
+Ahora que tu rama local coincide con el nombre que espera GitHub, intenta subir de nuevo:
+
+Bash
+git push -u origin main
+
 
 ### 2.2 Conectar con Vercel
 1. Ve a https://vercel.com → **Add New Project**

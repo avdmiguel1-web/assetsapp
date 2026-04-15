@@ -4,6 +4,7 @@ import { useAuth } from "../stores/AuthContext";
 import { useT } from "../i18n/index.jsx";
 import { Plus, Pencil, Trash2, MapPin, X, Search } from "lucide-react";
 import { COUNTRY_PRESETS, findCountryPreset, flagFromCountryCode } from "../lib/countries";
+import { isRentalLocationName } from "../lib/locationUtils";
 
 const EMPTY_LOCATION = { name: "", country: "", address: "", description: "" };
 const EMPTY_COUNTRY = { name: "", flag: "" };
@@ -17,11 +18,12 @@ function LocationModal({ open, onClose, editLocation = null }) {
 
   useEffect(() => {
     if (!open) return;
-    setForm(editLocation ?? EMPTY_LOCATION);
+    setForm({ ...EMPTY_LOCATION, ...(editLocation ?? {}) });
     setErrors({});
   }, [editLocation, open]);
 
   const setField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const isRentalLocation = isRentalLocationName(form.name);
 
   const save = () => {
     const nextErrors = {};
@@ -39,7 +41,16 @@ function LocationModal({ open, onClose, editLocation = null }) {
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    isEdit ? updateLocation(form) : addLocation(form);
+    const payload = {
+      ...form,
+      name: form.name.trim(),
+      country: form.country.trim(),
+      address: form.address?.trim() || "",
+      description: form.description?.trim() || "",
+      rentalStartDate: "",
+      rentalEndDate: "",
+    };
+    isEdit ? updateLocation(payload) : addLocation(payload);
     onClose();
   };
 
@@ -236,7 +247,7 @@ export default function LocationsPage() {
   const filtered = locations.filter((location) => {
     if (filterCountry && location.country !== filterCountry) return false;
     const query = search.toLowerCase();
-    return !query || `${location.name} ${location.country} ${location.address}`.toLowerCase().includes(query);
+    return !query || `${location.name} ${location.country} ${location.address} ${location.description}`.toLowerCase().includes(query);
   });
 
   const assetCount = (location) => assets.filter((asset) => asset.locationId === location.id || asset.location === location.name).length;

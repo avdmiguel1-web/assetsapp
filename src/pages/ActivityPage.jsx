@@ -405,7 +405,7 @@ export default function ActivityPage() {
                           <div style={{
                             fontSize: 10,
                             fontWeight: 700,
-                            color: "var(--text-muted)",
+                            color: "var(--accent-amber)",
                             textTransform: "uppercase",
                             letterSpacing: "0.06em",
                             marginBottom: 3,
@@ -431,7 +431,7 @@ export default function ActivityPage() {
                           <span style={{
                             fontSize: 13,
                             fontWeight: 600,
-                            color: "var(--accent-green)",
+                            color: "var(--text-primary)",
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,

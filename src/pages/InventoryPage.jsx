@@ -3,7 +3,7 @@ import { useApp } from "../stores/AppContext";
 import { useTelemetry } from "../hooks/useTelemetry";
 import { DEFAULT_DEVICE_ID as DEVICE_ID } from "../services/flespiService";
 import AssetModal from "../components/inventory/AssetModal";
-import AssetDetailModal from "../components/inventory/AssetDetailModal";
+import AssetDetailModal from "../components/inventory/AssetDetailModalFixed";
 import ResolvedImage from "../components/common/ResolvedImage";
 import { Plus, Search, X, Pencil, Eye, Trash2, Package, Filter } from "lucide-react";
 

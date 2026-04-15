@@ -4,6 +4,34 @@ import { useAuth } from "../stores/AuthContext";
 import { useT } from "../i18n/index.jsx";
 import ResolvedImage from "../components/common/ResolvedImage";
 import { ArrowRight, ArrowLeftRight, Plus, X, Package, MapPin, Search, AlertCircle } from "lucide-react";
+import { formatDateInputValue, formatDateRangeValue, formatTimeRangeValue, getRentalRangeKind, isRentalLocationName } from "../lib/locationUtils";
+
+function findLocationRecord(locations, { id, name, country }) {
+  return locations.find((location) => location.id === id)
+    || locations.find((location) => location.name === name && location.country === country)
+    || null;
+}
+
+function getLocationSecondaryText(location, fallbackAddress, fallbackCountry) {
+  return location?.address || fallbackAddress || fallbackCountry || "—";
+}
+
+function getRentalSummary(transfer, locale) {
+  const kind = getRentalRangeKind(transfer);
+  if (kind === "date") {
+    return {
+      label: "date",
+      value: formatDateRangeValue(transfer.rentalStartDate, transfer.rentalEndDate, locale),
+    };
+  }
+  if (kind === "time") {
+    return {
+      label: "time",
+      value: formatTimeRangeValue(transfer.rentalStartTime, transfer.rentalEndTime, locale),
+    };
+  }
+  return null;
+}
 
 function TransferModal({ open, onClose }) {
   const t = useT();
@@ -11,6 +39,10 @@ function TransferModal({ open, onClose }) {
   const [assetId,      setAssetId]      = useState("");
   const [toLocationId, setToLocationId] = useState("");
   const [error,        setError]        = useState("");
+  const [rentalStartDate, setRentalStartDate] = useState("");
+  const [rentalEndDate, setRentalEndDate] = useState("");
+  const [rentalStartTime, setRentalStartTime] = useState("");
+  const [rentalEndTime, setRentalEndTime] = useState("");
 
   // Free-text search state for asset selection
   const [assetSearch,  setAssetSearch]  = useState("");
@@ -20,7 +52,13 @@ function TransferModal({ open, onClose }) {
 
   const selectedAsset = assets.find(a => a.id === assetId) || null;
   const selectedDest  = locations.find(l => l.id === toLocationId) || null;
+  const currentLocation = findLocationRecord(locations, {
+    id: selectedAsset?.locationId,
+    name: selectedAsset?.location,
+    country: selectedAsset?.country,
+  });
   const destOptions   = locations.filter(l => l.id !== selectedAsset?.locationId && l.name !== selectedAsset?.location);
+  const isRentalDestination = isRentalLocationName(selectedDest?.name || "");
 
   // Filter assets by free-text: assetId, brand, model
   const filteredAssets = useMemo(() => {
@@ -47,6 +85,16 @@ function TransferModal({ open, onClose }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!selectedDest) {
+      setRentalStartDate("");
+      setRentalEndDate("");
+      setRentalStartTime("");
+      setRentalEndTime("");
+      return;
+    }
+  }, [selectedDest]);
+
   const handleSelectAsset = (asset) => {
     setAssetId(asset.id);
     setAssetSearch(`${asset.brand} ${asset.model}${asset.assetId ? ` · ${asset.assetId}` : ""}`);
@@ -61,16 +109,50 @@ function TransferModal({ open, onClose }) {
     setToLocationId("");
     setError("");
     setShowDropdown(false);
+    setRentalStartDate("");
+    setRentalEndDate("");
+    setRentalStartTime("");
+    setRentalEndTime("");
   };
 
   const handleTransfer = () => {
+    const hasAnyRentalDate = Boolean(rentalStartDate || rentalEndDate);
+    const hasAnyRentalTime = Boolean(rentalStartTime || rentalEndTime);
+    const hasCompleteRentalDate = Boolean(rentalStartDate && rentalEndDate);
+    const hasCompleteRentalTime = Boolean(rentalStartTime && rentalEndTime);
+
     if (!selectedAsset) { setError(t.transfers.errorAsset); return; }
     if (!selectedDest)  { setError(t.transfers.errorDest);  return; }
+    if (isRentalDestination && !hasCompleteRentalDate && !hasCompleteRentalTime) {
+      setError(t.transfers.errorRentalRange || "Selecciona un rango de fecha o un rango de hora para el alquiler.");
+      return;
+    }
+    if (isRentalDestination && ((hasAnyRentalDate && !hasCompleteRentalDate) || (hasAnyRentalTime && !hasCompleteRentalTime))) {
+      setError(t.transfers.errorRentalIncomplete || "Completa ambos campos del rango seleccionado.");
+      return;
+    }
+    if (isRentalDestination && hasCompleteRentalDate && hasCompleteRentalTime) {
+      setError(t.transfers.errorRentalMode || "Selecciona solo un tipo de alquiler: fecha u hora.");
+      return;
+    }
+    if (hasCompleteRentalDate && rentalStartDate > rentalEndDate) {
+      setError(t.transfers.errorRentalDateOrder || "La fecha inicial no puede ser mayor que la fecha final.");
+      return;
+    }
+    if (hasCompleteRentalTime && rentalStartTime > rentalEndTime) {
+      setError(t.transfers.errorRentalTimeOrder || "La hora inicial no puede ser mayor que la hora final.");
+      return;
+    }
     transferAsset({
       assetId:        selectedAsset.id,
       toLocationId:   selectedDest.id,
       toLocationName: selectedDest.name,
       toCountry:      selectedDest.country,
+      toAddress:      selectedDest.address || "",
+      rentalStartDate: isRentalDestination && hasCompleteRentalDate ? rentalStartDate : "",
+      rentalEndDate: isRentalDestination && hasCompleteRentalDate ? rentalEndDate : "",
+      rentalStartTime: isRentalDestination && hasCompleteRentalTime ? rentalStartTime : "",
+      rentalEndTime: isRentalDestination && hasCompleteRentalTime ? rentalEndTime : "",
     });
     onClose();
   };
@@ -83,6 +165,10 @@ function TransferModal({ open, onClose }) {
       setToLocationId("");
       setError("");
       setShowDropdown(false);
+      setRentalStartDate("");
+      setRentalEndDate("");
+      setRentalStartTime("");
+      setRentalEndTime("");
     }
   }, [open]);
 
@@ -147,7 +233,7 @@ function TransferModal({ open, onClose }) {
                     ref={dropdownRef}
                     style={{
                       position:"absolute", top:"calc(100% + 4px)", left:0, right:0,
-                      background:"var(--bg-surface)", border:"1px solid var(--border-default)",
+                      background:"var(--bg-base)", border:"1px solid var(--border-default)",
                       borderRadius:"var(--radius-md)", boxShadow:"0 8px 24px rgba(0,0,0,0.15)",
                       zIndex:1000, maxHeight:220, overflowY:"auto"
                     }}
@@ -205,7 +291,7 @@ function TransferModal({ open, onClose }) {
                 <div style={{ fontSize:11, color:"var(--text-muted)", display:"flex", alignItems:"center", gap:4, marginTop:2 }}>
                   <MapPin size={10} />
                   {t.transfers.currentLocation} <strong>{selectedAsset.location || "—"}</strong>
-                  {selectedAsset.country && <span> · {FLAG_MAP[selectedAsset.country]||""} {selectedAsset.country}</span>}
+                  <span> · {getLocationSecondaryText(currentLocation, "", selectedAsset.country)}</span>
                 </div>
               </div>
             </div>
@@ -230,7 +316,7 @@ function TransferModal({ open, onClose }) {
               <select className="form-select" value={toLocationId} onChange={e => { setToLocationId(e.target.value); setError(""); }} disabled={!selectedAsset}>
                 <option value="">{t.transfers.selectDest}</option>
                 {destOptions.map(l => (
-                  <option key={l.id} value={l.id}>{FLAG_MAP[l.country]||""} {l.name} — {l.country}</option>
+                  <option key={l.id} value={l.id}>{FLAG_MAP[l.country]||""} {l.name} — {l.address || l.country}</option>
                 ))}
               </select>
             )}
@@ -239,14 +325,52 @@ function TransferModal({ open, onClose }) {
             )}
           </div>
 
+          {isRentalDestination && (
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="form-label">{t.transfers.rentalDateFromLabel || "Fecha desde"}</label>
+                  <input className="form-input" type="date" value={rentalStartDate} onChange={e => { setRentalStartDate(e.target.value); setError(""); }} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.transfers.rentalDateToLabel || "Fecha hasta"}</label>
+                  <input className="form-input" type="date" value={rentalEndDate} onChange={e => { setRentalEndDate(e.target.value); setError(""); }} />
+                </div>
+              </div>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="form-label">{t.transfers.rentalTimeFromLabel || "Hora desde"}</label>
+                  <input className="form-input" type="time" value={rentalStartTime} onChange={e => { setRentalStartTime(e.target.value); setError(""); }} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">{t.transfers.rentalTimeToLabel || "Hora hasta"}</label>
+                  <input className="form-input" type="time" value={rentalEndTime} onChange={e => { setRentalEndTime(e.target.value); setError(""); }} />
+                </div>
+              </div>
+              <div style={{ fontSize:11, color:"var(--text-muted)" }}>
+                {t.transfers.rentalHint || "Completa solo un tipo de rango para el alquiler: fecha o hora."}
+              </div>
+            </div>
+          )}
+
           {selectedDest && (
             <div style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 14px", background:"var(--accent-green-light)", border:"1px solid rgba(15,158,106,0.2)", borderRadius:"var(--radius-md)" }}>
               <div style={{ fontSize:22 }}>{FLAG_MAP[selectedDest.country]||"📍"}</div>
               <div>
                 <div style={{ fontWeight:700, fontSize:13, color:"var(--accent-green)" }}>{selectedDest.name}</div>
                 <div style={{ fontSize:11, color:"var(--text-secondary)", marginTop:1 }}>
-                  {selectedDest.country}{selectedDest.address ? ` · ${selectedDest.address}` : ""}
+                  {selectedDest.address || selectedDest.country}
                 </div>
+                {isRentalDestination && (rentalStartTime || rentalEndTime) && (
+                  <div style={{ fontSize:11, color:"var(--accent-green)", marginTop:4 }}>
+                    {(t.transfers.rentalTimeLabel || "Hora alquiler")}: {formatTimeRangeValue(rentalStartTime, rentalEndTime, t.lang === "en" ? "en-US" : "es-VE") || "â€”"}
+                  </div>
+                )}
+                {isRentalDestination && (rentalStartDate || rentalEndDate) && (
+                  <div style={{ fontSize:11, color:"var(--accent-green)", marginTop:4 }}>
+                    {(t.transfers.rentalPeriodLabel || "Alquiler")}: {rentalStartDate ? formatDateInputValue(rentalStartDate, t.lang === "en" ? "en-US" : "es-VE") : "—"}{rentalEndDate ? ` - ${formatDateInputValue(rentalEndDate, t.lang === "en" ? "en-US" : "es-VE")}` : ""}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -271,7 +395,7 @@ function TransferModal({ open, onClose }) {
 
 export default function TransfersPage() {
   const t = useT();
-  const { transfers, assets, FLAG_MAP } = useApp();
+  const { transfers, assets, locations, FLAG_MAP } = useApp();
   const { canDo } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [search,    setSearch]    = useState("");
@@ -280,12 +404,24 @@ export default function TransfersPage() {
     const q = search.toLowerCase().trim();
     return transfers.filter(tr => {
       const asset = assets.find(a => a.id === tr.assetId);
+      const fromLocation = findLocationRecord(locations, { name: tr.fromLocation, country: tr.fromCountry });
+      const toLocation = findLocationRecord(locations, { name: tr.toLocation, country: tr.toCountry });
       if (!q) return true;
-      return `${tr.fromLocation} ${tr.toLocation} ${tr.fromCountry} ${tr.toCountry} ${asset?.assetId || tr.assetId} ${asset?.brand || ""} ${asset?.model || ""}`.toLowerCase().includes(q);
+      return `${tr.fromLocation} ${tr.toLocation} ${tr.fromCountry} ${tr.toCountry} ${tr.fromAddress || fromLocation?.address || ""} ${tr.toAddress || toLocation?.address || ""} ${asset?.assetId || tr.assetId} ${asset?.brand || ""} ${asset?.model || ""}`.toLowerCase().includes(q);
     });
-  }, [transfers, assets, search]);
+  }, [transfers, assets, locations, search]);
 
-  const enriched = filtered.map(tr => ({ ...tr, asset: assets.find(a => a.id === tr.assetId) }));
+  const enriched = filtered.map(tr => {
+    const fromLocation = findLocationRecord(locations, { name: tr.fromLocation, country: tr.fromCountry });
+    const toLocation = findLocationRecord(locations, { name: tr.toLocation, country: tr.toCountry });
+    return {
+      ...tr,
+      asset: assets.find(a => a.id === tr.assetId),
+      fromAddress: getLocationSecondaryText(fromLocation, tr.fromAddress, tr.fromCountry),
+      toAddress: getLocationSecondaryText(toLocation, tr.toAddress, tr.toCountry),
+      rentalSummary: getRentalSummary(tr, t.lang === "en" ? "en-US" : "es-VE"),
+    };
+  });
 
   return (
     <div>
@@ -356,7 +492,7 @@ export default function TransfersPage() {
                   <div style={{ flex:1, padding:"10px 14px", background:"var(--bg-elevated)", borderRadius:"var(--radius-md)", border:"1px solid var(--border-default)" }}>
                     <div style={{ fontSize:9, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{t.transfers.origin}</div>
                     <div style={{ fontWeight:600, fontSize:13 }}>{FLAG_MAP[tr.fromCountry]||""} {tr.fromLocation || "—"}</div>
-                    {tr.fromCountry && <div style={{ fontSize:11, color:"var(--text-muted)" }}>{tr.fromCountry}</div>}
+                    <div style={{ fontSize:11, color:"var(--text-muted)" }}>{tr.fromAddress}</div>
                   </div>
                   <div style={{ width:28, height:28, borderRadius:"50%", background:"var(--accent-blue-light)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                     <ArrowRight size={14} color="var(--accent-blue)" />
@@ -364,7 +500,15 @@ export default function TransfersPage() {
                   <div style={{ flex:1, padding:"10px 14px", background:"var(--accent-green-light)", borderRadius:"var(--radius-md)", border:"1px solid rgba(15,158,106,0.2)" }}>
                     <div style={{ fontSize:9, fontWeight:700, color:"var(--accent-green)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{t.transfers.destination}</div>
                     <div style={{ fontWeight:600, fontSize:13, color:"var(--accent-green)" }}>{FLAG_MAP[tr.toCountry]||""} {tr.toLocation || "—"}</div>
-                    {tr.toCountry && <div style={{ fontSize:11, color:"var(--text-secondary)" }}>{tr.toCountry}</div>}
+                    <div style={{ fontSize:11, color:"var(--text-secondary)" }}>{tr.toAddress}</div>
+                    {tr.rentalSummary && (
+                      <div style={{ fontSize:11, color:"var(--accent-green)", marginTop:6 }}>
+                        {tr.rentalSummary.label === "date"
+                          ? (t.transfers.rentalDateLabel || "Fecha alquiler")
+                          : (t.transfers.rentalTimeLabel || "Hora alquiler")}
+                        : {tr.rentalSummary.value || "â€”"}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div style={{ textAlign:"right", flexShrink:0 }}>

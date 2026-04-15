@@ -24,6 +24,7 @@ import { deleteFiles, diffRemovedAssetStoragePaths, uploadAssetFiles, collectAss
 import { isOnline } from "../lib/supabase";
 import { useAuth } from "./AuthContext";
 import { DEFAULT_COUNTRIES, buildFlagMap } from "../lib/countries";
+import { isRentalLocationName } from "../lib/locationUtils";
 
 const AppContext = createContext(null);
 
@@ -79,6 +80,10 @@ function summarizeAsset(asset) {
     category: asset.category ?? "",
     status: asset.status ?? "",
     location: asset.location ?? "",
+    rentalStartDate: asset.rentalStartDate ?? "",
+    rentalEndDate: asset.rentalEndDate ?? "",
+    rentalStartTime: asset.rentalStartTime ?? "",
+    rentalEndTime: asset.rentalEndTime ?? "",
   };
 }
 
@@ -88,6 +93,8 @@ function summarizeLocation(location) {
     name: location.name ?? "",
     country: location.country ?? "",
     address: location.address ?? "",
+    rentalStartDate: location.rentalStartDate ?? "",
+    rentalEndDate: location.rentalEndDate ?? "",
   };
 }
 
@@ -189,23 +196,51 @@ function reducer(state, action) {
     case "DELETE_COUNTRY":
       return { ...state, countriesData: state.countriesData.filter((country) => country.id !== action.id) };
     case "TRANSFER_ASSET_LOCAL": {
-      const { assetId, toLocationId, toLocationName, toCountry } = action.payload;
+      const {
+        assetId,
+        toLocationId,
+        toLocationName,
+        toCountry,
+        fromAddress = null,
+        toAddress = null,
+        rentalStartDate = null,
+        rentalEndDate = null,
+        rentalStartTime = null,
+        rentalEndTime = null,
+        transferId,
+        ts,
+      } = action.payload;
       const asset = state.assets.find((item) => item.id === assetId);
       const transfer = {
-        id: genId("TRF"),
+        id: transferId,
         assetId,
         fromLocation: asset?.location,
         fromCountry: asset?.country,
+        fromAddress,
         toLocation: toLocationName,
         toCountry,
-        ts: new Date().toISOString(),
+        toAddress,
+        rentalStartDate,
+        rentalEndDate,
+        rentalStartTime,
+        rentalEndTime,
+        ts,
       };
 
       return {
         ...state,
         assets: state.assets.map((item) =>
           item.id === assetId
-            ? { ...item, locationId: toLocationId, location: toLocationName, country: toCountry }
+            ? {
+                ...item,
+                locationId: toLocationId,
+                location: toLocationName,
+                country: toCountry,
+                rentalStartDate: rentalStartDate || null,
+                rentalEndDate: rentalEndDate || null,
+                rentalStartTime: rentalStartTime || null,
+                rentalEndTime: rentalEndTime || null,
+              }
             : item
         ),
         transfers: [transfer, ...state.transfers],
@@ -460,42 +495,86 @@ export function AppProvider({ children }) {
 
   const transferAsset = useCallback(
     async (payload) => {
-      dispatch({ type: "TRANSFER_ASSET_LOCAL", payload });
+      const asset = state.assets.find((item) => item.id === payload.assetId);
+      const destination = state.locations.find((location) => location.id === payload.toLocationId);
+      const currentLocation = state.locations.find((location) => location.id === asset?.locationId)
+        || state.locations.find((location) => location.name === asset?.location && location.country === asset?.country);
+      const rentalDestination = isRentalLocationName(destination?.name || payload.toLocationName);
+      const transferId = genId("TRF");
+      const ts = new Date().toISOString();
+      const transferPayload = {
+        ...payload,
+        transferId,
+        ts,
+        toLocationName: destination?.name ?? payload.toLocationName ?? "",
+        toCountry: destination?.country ?? payload.toCountry ?? "",
+        fromAddress: currentLocation?.address ?? null,
+        toAddress: destination?.address ?? payload.toAddress ?? null,
+        rentalStartDate: rentalDestination ? (payload.rentalStartDate || null) : null,
+        rentalEndDate: rentalDestination ? (payload.rentalEndDate || null) : null,
+        rentalStartTime: rentalDestination ? (payload.rentalStartTime || null) : null,
+        rentalEndTime: rentalDestination ? (payload.rentalEndTime || null) : null,
+      };
+
+      dispatch({ type: "TRANSFER_ASSET_LOCAL", payload: transferPayload });
       if (!isOnline()) return;
 
       try {
-        const asset = state.assets.find((item) => item.id === payload.assetId);
         const transfer = {
-          id: genId("TRF"),
-          assetId: payload.assetId,
+          id: transferId,
+          assetId: transferPayload.assetId,
           fromLocation: asset?.location ?? null,
           fromCountry: asset?.country ?? null,
-          toLocation: payload.toLocationName,
-          toCountry: payload.toCountry,
-          ts: new Date().toISOString(),
+          fromAddress: transferPayload.fromAddress,
+          toLocation: transferPayload.toLocationName,
+          toCountry: transferPayload.toCountry,
+          toAddress: transferPayload.toAddress,
+          rentalStartDate: transferPayload.rentalStartDate,
+          rentalEndDate: transferPayload.rentalEndDate,
+          rentalStartTime: transferPayload.rentalStartTime,
+          rentalEndTime: transferPayload.rentalEndTime,
+          ts,
         };
 
-        await dbInsertTransfer(transfer);
-        await dbUpdateAsset({
+        const savedTransfer = await dbInsertTransfer(transfer);
+        const savedAsset = await dbUpdateAsset({
           ...asset,
-          locationId: payload.toLocationId,
-          location: payload.toLocationName,
-          country: payload.toCountry,
+          locationId: transferPayload.toLocationId,
+          location: transferPayload.toLocationName,
+          country: transferPayload.toCountry,
+          rentalStartDate: transferPayload.rentalStartDate,
+          rentalEndDate: transferPayload.rentalEndDate,
+          rentalStartTime: transferPayload.rentalStartTime,
+          rentalEndTime: transferPayload.rentalEndTime,
+        });
+        dispatch({ type: "UPDATE_ASSET", payload: savedAsset });
+        dispatch({
+          type: "SET_TRANSFERS",
+          payload: state.transfers
+            .filter((item) => item.id !== transferId)
+            .concat(savedTransfer)
+            .sort((a, b) => new Date(b.ts || 0).getTime() - new Date(a.ts || 0).getTime()),
         });
         setSyncError(null);
         await logActivity({
           action: "transfer",
           entityType: "asset",
-          entityId: asset?.id ?? payload.assetId,
-          entityLabel: asset ? `${asset.brand} ${asset.model}`.trim() : payload.assetId,
+          entityId: asset?.id ?? transferPayload.assetId,
+          entityLabel: asset ? `${asset.brand} ${asset.model}`.trim() : transferPayload.assetId,
           details: {
             assetId: asset?.assetId ?? "",
             brand: asset?.brand ?? "",
             model: asset?.model ?? "",
             fromLocation: asset?.location ?? null,
             fromCountry: asset?.country ?? null,
-            toLocation: payload.toLocationName,
-            toCountry: payload.toCountry,
+            fromAddress: transferPayload.fromAddress,
+            toLocation: transferPayload.toLocationName,
+            toCountry: transferPayload.toCountry,
+            toAddress: transferPayload.toAddress,
+            rentalStartDate: transferPayload.rentalStartDate,
+            rentalEndDate: transferPayload.rentalEndDate,
+            rentalStartTime: transferPayload.rentalStartTime,
+            rentalEndTime: transferPayload.rentalEndTime,
           },
         });
       } catch (error) {
@@ -504,7 +583,7 @@ export function AppProvider({ children }) {
         throw error;
       }
     },
-    [logActivity, state.assets]
+    [logActivity, state.assets, state.locations, state.transfers]
   );
 
   const addCategory = useCallback(async (form) => {

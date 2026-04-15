@@ -49,18 +49,36 @@ function getMissingAssetColumn(error) {
   return match?.[1] ?? null;
 }
 
-function omitAssetColumnIfOptional(row, error) {
-  const missingColumn = getMissingAssetColumn(error);
-  const optionalColumns = new Set(["gps_provider"]);
+function getMissingColumn(error, table) {
+  const match = error?.message?.match(new RegExp(`Could not find the '([^']+)' column of '${table}' in the schema cache`, "i"));
+  return match?.[1] ?? null;
+}
 
-  if (!missingColumn || !optionalColumns.has(missingColumn) || !(missingColumn in row)) {
+function omitOptionalColumn(row, error, table, optionalColumns = []) {
+  const missingColumn = table === "assets" ? getMissingAssetColumn(error) : getMissingColumn(error, table);
+  const allowedColumns = new Set(optionalColumns);
+
+  if (!missingColumn || !allowedColumns.has(missingColumn) || !(missingColumn in row)) {
     return null;
   }
 
   const nextRow = { ...row };
   delete nextRow[missingColumn];
-  console.warn(`[DB] assets fallback: retrying without optional column "${missingColumn}"`);
+  console.warn(`[DB] ${table} fallback: retrying without optional column "${missingColumn}"`);
   return nextRow;
+}
+
+async function runWithOptionalColumnFallback(op, table, row, optionalColumns, executor) {
+  let currentRow = row;
+
+  while (true) {
+    const result = await executor(currentRow);
+    if (!result.error) return result;
+
+    const fallbackRow = omitOptionalColumn(currentRow, result.error, table, optionalColumns);
+    if (!fallbackRow) throwDbError(op, result.error);
+    currentRow = fallbackRow;
+  }
 }
 
 // ── ASSETS ──────────────────────────────────────────────────────────────────
@@ -78,50 +96,26 @@ export async function dbFetchAssets() {
 export async function dbInsertAsset(asset) {
   if (!supabase) return asset;
   const row = assetToDb(asset, true);
-  const { data, error } = await supabase
-    .from("assets")
-    .insert([row])
-    .select()
-    .single();
-  if (error) {
-    const fallbackRow = omitAssetColumnIfOptional(row, error);
-    if (fallbackRow) {
-      const retry = await supabase
-        .from("assets")
-        .insert([fallbackRow])
-        .select()
-        .single();
-      if (retry.error) throwDbError("insertAsset", retry.error);
-      return dbToAsset(retry.data);
-    }
-    throwDbError("insertAsset", error);
-  }
+  const { data } = await runWithOptionalColumnFallback(
+    "insertAsset",
+    "assets",
+    row,
+    ["gps_provider", "rental_start_date", "rental_end_date", "rental_start_time", "rental_end_time"],
+    (currentRow) => supabase.from("assets").insert([currentRow]).select().single()
+  );
   return dbToAsset(data);
 }
 
 export async function dbUpdateAsset(asset) {
   if (!supabase) return asset;
   const row = assetToDb(asset);
-  const { data, error } = await supabase
-    .from("assets")
-    .update(row)
-    .eq("id", asset.id)
-    .select()
-    .single();
-  if (error) {
-    const fallbackRow = omitAssetColumnIfOptional(row, error);
-    if (fallbackRow) {
-      const retry = await supabase
-        .from("assets")
-        .update(fallbackRow)
-        .eq("id", asset.id)
-        .select()
-        .single();
-      if (retry.error) throwDbError("updateAsset", retry.error);
-      return dbToAsset(retry.data);
-    }
-    throwDbError("updateAsset", error);
-  }
+  const { data } = await runWithOptionalColumnFallback(
+    "updateAsset",
+    "assets",
+    row,
+    ["gps_provider", "rental_start_date", "rental_end_date", "rental_start_time", "rental_end_time"],
+    (currentRow) => supabase.from("assets").update(currentRow).eq("id", asset.id).select().single()
+  );
   return dbToAsset(data);
 }
 
@@ -145,24 +139,27 @@ export async function dbFetchLocations() {
 
 export async function dbInsertLocation(loc) {
   if (!supabase) return loc;
-  const { data, error } = await supabase
-    .from("locations")
-    .insert([locationToDb(loc)])
-    .select()
-    .single();
-  if (error) throwDbError("insertLocation", error);
+  const row = locationToDb(loc);
+  const { data } = await runWithOptionalColumnFallback(
+    "insertLocation",
+    "locations",
+    row,
+    ["rental_start_date", "rental_end_date"],
+    (currentRow) => supabase.from("locations").insert([currentRow]).select().single()
+  );
   return dbToLocation(data);
 }
 
 export async function dbUpdateLocation(loc) {
   if (!supabase) return loc;
-  const { data, error } = await supabase
-    .from("locations")
-    .update(locationToDb(loc))
-    .eq("id", loc.id)
-    .select()
-    .single();
-  if (error) throwDbError("updateLocation", error);
+  const row = locationToDb(loc);
+  const { data } = await runWithOptionalColumnFallback(
+    "updateLocation",
+    "locations",
+    row,
+    ["rental_start_date", "rental_end_date"],
+    (currentRow) => supabase.from("locations").update(currentRow).eq("id", loc.id).select().single()
+  );
   return dbToLocation(data);
 }
 
@@ -233,13 +230,19 @@ export async function dbFetchTransfers() {
 
 function dbToTransfer(r) {
   return {
-    id:           r.id,
-    assetId:      r.asset_id,
-    fromLocation: r.from_location,
-    fromCountry:  r.from_country,
-    toLocation:   r.to_location,
-    toCountry:    r.to_country,
-    ts:           r.ts,
+    id:              r.id,
+    assetId:         r.asset_id,
+    fromLocation:    r.from_location,
+    fromCountry:     r.from_country,
+    fromAddress:     r.from_address,
+    toLocation:      r.to_location,
+    toCountry:       r.to_country,
+    toAddress:       r.to_address,
+    rentalStartDate: r.rental_start_date,
+    rentalEndDate:   r.rental_end_date,
+    rentalStartTime: r.rental_start_time,
+    rentalEndTime:   r.rental_end_time,
+    ts:              r.ts,
   };
 }
 
@@ -248,19 +251,26 @@ export async function dbInsertTransfer(transfer) {
   // Convert camelCase payload to snake_case for DB
   const row = {
     id:            transfer.id,
-    asset_id:      transfer.assetId      ?? transfer.asset_id,
-    from_location: transfer.fromLocation ?? transfer.from_location ?? null,
-    from_country:  transfer.fromCountry  ?? transfer.from_country  ?? null,
-    to_location:   transfer.toLocation   ?? transfer.to_location,
-    to_country:    transfer.toCountry    ?? transfer.to_country,
-    ts:            transfer.ts,
+    asset_id:          transfer.assetId         ?? transfer.asset_id,
+    from_location:     transfer.fromLocation    ?? transfer.from_location ?? null,
+    from_country:      transfer.fromCountry     ?? transfer.from_country  ?? null,
+    from_address:      transfer.fromAddress     ?? transfer.from_address  ?? null,
+    to_location:       transfer.toLocation      ?? transfer.to_location,
+    to_country:        transfer.toCountry       ?? transfer.to_country,
+    to_address:        transfer.toAddress       ?? transfer.to_address    ?? null,
+    rental_start_date: transfer.rentalStartDate ?? transfer.rental_start_date ?? null,
+    rental_end_date:   transfer.rentalEndDate   ?? transfer.rental_end_date   ?? null,
+    rental_start_time: transfer.rentalStartTime ?? transfer.rental_start_time ?? null,
+    rental_end_time:   transfer.rentalEndTime   ?? transfer.rental_end_time   ?? null,
+    ts:                transfer.ts,
   };
-  const { data, error } = await supabase
-    .from("transfers")
-    .insert([row])
-    .select()
-    .single();
-  if (error) throwDbError("insertTransfer", error);
+  const { data } = await runWithOptionalColumnFallback(
+    "insertTransfer",
+    "transfers",
+    row,
+    ["from_address", "to_address", "rental_start_date", "rental_end_date", "rental_start_time", "rental_end_time"],
+    (currentRow) => supabase.from("transfers").insert([currentRow]).select().single()
+  );
   return dbToTransfer(data);
 }
 
@@ -280,6 +290,10 @@ function assetToDb(a, forInsert = false) {
     location:          a.location       ?? null,
     location_id:       a.locationId     ?? null,
     description:       a.description    ?? null,
+    rental_start_date: a.rentalStartDate ?? null,
+    rental_end_date:   a.rentalEndDate   ?? null,
+    rental_start_time: a.rentalStartTime ?? null,
+    rental_end_time:   a.rentalEndTime   ?? null,
     has_telemetry:     a.hasTelemetry   ?? false,
     flespi_device_id:  a.flespiDeviceId ?? null,
     gps_provider:      a.gpsProvider    ?? 'flespi',
@@ -309,6 +323,10 @@ function dbToAsset(r) {
     location:        r.location,
     locationId:      r.location_id,
     description:     r.description,
+    rentalStartDate: r.rental_start_date,
+    rentalEndDate:   r.rental_end_date,
+    rentalStartTime: r.rental_start_time,
+    rentalEndTime:   r.rental_end_time,
     hasTelemetry:    r.has_telemetry,
     flespiDeviceId:  r.flespi_device_id,
     gpsProvider:     r.gps_provider ?? 'flespi',
@@ -332,6 +350,8 @@ function locationToDb(l) {
     country:     l.country,
     address:     l.address     ?? null,
     description: l.description ?? null,
+    rental_start_date: l.rentalStartDate ?? null,
+    rental_end_date:   l.rentalEndDate   ?? null,
     created_at:  l.createdAt   ?? new Date().toISOString(),
   };
 }
@@ -343,6 +363,8 @@ function dbToLocation(r) {
     country:     r.country,
     address:     r.address,
     description: r.description,
+    rentalStartDate: r.rental_start_date,
+    rentalEndDate:   r.rental_end_date,
     createdAt:   r.created_at,
   };
 }
