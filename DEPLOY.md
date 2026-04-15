@@ -75,6 +75,7 @@ Ahora que tu rama local coincide con el nombre que espera GitHub, intenta subir 
 Bash
 git push -u origin main
 
+si da error intenta forzarlo: git push -u origin main --force 
 
 ### 2.2 Conectar con Vercel
 1. Ve a https://vercel.com → **Add New Project**

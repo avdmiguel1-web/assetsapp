@@ -47,8 +47,8 @@ function LocationModal({ open, onClose, editLocation = null }) {
       country: form.country.trim(),
       address: form.address?.trim() || "",
       description: form.description?.trim() || "",
-      rentalStartDate: "",
-      rentalEndDate: "",
+      rentalStartDate: null,
+      rentalEndDate: null,
     };
     isEdit ? updateLocation(payload) : addLocation(payload);
     onClose();
