@@ -1,4 +1,4 @@
-export default {
+﻿export default {
   nav: {
     dashboard:   "Dashboard",
     locations:   "Locations",
@@ -36,7 +36,7 @@ export default {
     noAssetsSub:    "Register your first asset to start managing your fleet.",
     noResults:      "No results for the applied filters.",
     clearFilters:   "Clear filters",
-    searchPlaceholder:"Search by brand, model, plate, ID...",
+    searchPlaceholder:"Search by brand, model, plate, ID o location...",
     allCategories:  "All categories",
     allStatuses:    "All statuses",
     allLocations:   "All locations",
@@ -71,7 +71,7 @@ export default {
     assetId:        "Asset ID",
     assetIdHint:    "Optional — own code",
     plate:          "Plate / Serial",
-    telemetry:      "🛰 Has GPS Telemetry",
+    telemetry:      "Has GPS Telemetry",
     telemetryHint:  "Enable if the asset has a GPS tracker",
     deviceIdLabel:  "Device ID",
     deviceIdActive: "Active device configured:",
@@ -259,6 +259,8 @@ export default {
     rented:       "Rented",
     daysRemaining:"Days remaining",
     hoursRemaining:"Hours remaining",
+    daysExtra:    "Extra days",
+    hoursExtra:   "Extra hours",
     rentalDate:   "Rental date",
     rentalTime:   "Rental time",
     rentalFrom:   "From",
@@ -281,6 +283,8 @@ export default {
     invalidSignal:"⚠ No validity",
     close:        "Close",
     edit:         "Edit",
+    returnAction: "Return",
+    returning:    "Returning...",
     photo:        "Asset Photo",
     provider:     "Provider",
   },
@@ -304,6 +308,8 @@ export default {
     cancel:       "Cancel",
     delete:       "Delete",
     edit:         "Edit",
+    returnAction: "Return",
+    returning:    "Returning...",
     close:        "Close",
     search:       "Search",
     filter:       "Filter",
@@ -323,7 +329,7 @@ export default {
     noCategoriesSub:"Categories organize your assets. Add the ones you need.",
     addFirst:     "Add First Category",
     inUse:        (n) => `${n} asset${n!==1?"s":""}`,
-    deleteBlocked:(name, n) => `Cannot delete "${name}" — it has ${n} assigned asset(s).`,
+    deleteBlocked:(name, n) => `Cannot delete "${name}" â€” it has ${n} assigned asset(s).`,
     deleteConfirm:(name) => `Delete category "${name}"?`,
     modalTitleNew:"New Category",
     modalTitleEdit:"Edit Category",
@@ -337,3 +343,9 @@ export default {
     duplicate:    "A category with this name already exists",
   },
 };
+
+
+
+
+
+

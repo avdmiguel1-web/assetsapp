@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { dbFetchAuditLogs } from "../lib/db";
 import { useT } from "../i18n/index.jsx";
 import { AlertCircle, ChevronLeft, ChevronRight, History, RefreshCcw, Search } from "lucide-react";
@@ -8,6 +8,7 @@ const ACTION_VERBS = {
   update:   { es: "Edicion",    en: "Updated" },
   delete:   { es: "Eliminacion",en: "Deleted" },
   transfer: { es: "Traslado",   en: "Transferred" },
+  rental_return: { es: "Retorno de alquiler", en: "Rental return" },
 };
 
 const ENTITY_LABELS = {
@@ -19,6 +20,9 @@ const ENTITY_LABELS = {
 };
 
 function formatAction(log, lang) {
+  if (log.action === "rental_return") {
+    return log.details?.title || ACTION_VERBS.rental_return?.[lang] || log.action;
+  }
   const verb   = ACTION_VERBS[log.action]?.[lang] || log.action;
   const entity = ENTITY_LABELS[log.entityType]?.[lang] || log.entityType || (lang === "en" ? "record" : "registro");
   return lang === "en" ? `${verb} ${entity}` : `${verb} de ${entity}`;
@@ -38,9 +42,9 @@ function parseDateInput(value, endOfDay = false) {
  * based on action type and entity type.
  *
  * Returns { subtitle, before, after }
- *   subtitle — small label shown above the value (e.g. Asset ID)
- *   before   — value in the "Antes" column
- *   after    — value in the "Actualizado" column (null when not applicable)
+ *   subtitle â€” small label shown above the value (e.g. Asset ID)
+ *   before   â€” value in the "Antes" column
+ *   after    â€” value in the "Actualizado" column (null when not applicable)
  */
 function deriveCells(log, lang) {
   const details     = log.details || {};
@@ -48,16 +52,16 @@ function deriveCells(log, lang) {
   const entityType  = log.entityType;
   const isEs        = lang === "es";
 
-  // ── TRANSFER ──────────────────────────────────────────────────────────────
-  if (action === "transfer") {
+  // â”€â”€ TRANSFER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  if (action === "transfer" || action === "rental_return") {
     return {
       subtitle: details.assetId || "",
-      before:   details.fromLocation || (isEs ? "Sin ubicación" : "No location"),
-      after:    details.toLocation   || (isEs ? "Sin ubicación" : "No location"),
+      before:   details.fromLocation || (isEs ? "Sin ubicaciÃ³n" : "No location"),
+      after:    details.toLocation   || (isEs ? "Sin ubicaciÃ³n" : "No location"),
     };
   }
 
-  // ── UPDATE (edición) ──────────────────────────────────────────────────────
+  // â”€â”€ UPDATE (ediciÃ³n) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (action === "update") {
     const before = details.before || {};
     const after  = details.after  || {};
@@ -71,8 +75,8 @@ function deriveCells(log, lang) {
       if (changedKey) {
         return {
           subtitle,
-          before: String(before[changedKey] ?? "—"),
-          after:  String(after[changedKey]  ?? "—"),
+          before: String(before[changedKey] ?? "â€”"),
+          after:  String(after[changedKey]  ?? "â€”"),
         };
       }
       return {
@@ -90,8 +94,8 @@ function deriveCells(log, lang) {
       if (changedKey) {
         return {
           subtitle,
-          before: String(before[changedKey] ?? "—"),
-          after:  String(after[changedKey]  ?? "—"),
+          before: String(before[changedKey] ?? "â€”"),
+          after:  String(after[changedKey]  ?? "â€”"),
         };
       }
       return {
@@ -108,8 +112,8 @@ function deriveCells(log, lang) {
       if (changedKey) {
         return {
           subtitle: "",
-          before: String(before[changedKey] ?? "—"),
-          after:  String(after[changedKey]  ?? "—"),
+          before: String(before[changedKey] ?? "â€”"),
+          after:  String(after[changedKey]  ?? "â€”"),
         };
       }
       return {
@@ -126,30 +130,30 @@ function deriveCells(log, lang) {
     if (changedKey) {
       return {
         subtitle: "",
-        before: String(before[changedKey] ?? "—"),
-        after:  String(after[changedKey]  ?? "—"),
+        before: String(before[changedKey] ?? "â€”"),
+        after:  String(after[changedKey]  ?? "â€”"),
       };
     }
     return { subtitle: "", before: isEs ? "Sin cambios" : "No changes", after: null };
   }
 
-  // ── CREATE / DELETE ────────────────────────────────────────────────────────
+  // â”€â”€ CREATE / DELETE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (action === "create" || action === "delete") {
     if (entityType === "asset") {
       const src = details.before || details.after || details;
-      const brand   = src.brand   || "—";
-      const model   = src.model   || "—";
+      const brand   = src.brand   || "â€”";
+      const model   = src.model   || "â€”";
       const assetId = src.assetId || details.assetId || "";
       return {
         subtitle: assetId,
-        before:   `${brand} ${model}`.trim() || "—",
+        before:   `${brand} ${model}`.trim() || "â€”",
         after:    null,
       };
     }
 
     if (entityType === "user") {
       const src      = details.before || details.after || details;
-      const fullName = src.name || src.fullName || src.userName || log.entityLabel || "—";
+      const fullName = src.name || src.fullName || src.userName || log.entityLabel || "â€”";
       return {
         subtitle: "",
         before:   fullName,
@@ -159,7 +163,7 @@ function deriveCells(log, lang) {
 
     if (entityType === "category") {
       const src  = details.before || details.after || details;
-      const name = src.name || log.entityLabel || "—";
+      const name = src.name || log.entityLabel || "â€”";
       return {
         subtitle: "",
         before:   name,
@@ -169,7 +173,7 @@ function deriveCells(log, lang) {
 
     if (entityType === "location") {
       const src  = details.before || details.after || details;
-      const name = src.name || log.entityLabel || "—";
+      const name = src.name || log.entityLabel || "â€”";
       return {
         subtitle: "",
         before:   name,
@@ -179,7 +183,7 @@ function deriveCells(log, lang) {
 
     // Generic create / delete
     const src  = details.before || details.after || details;
-    const name = src.name || log.entityLabel || log.entityId || "—";
+    const name = src.name || log.entityLabel || log.entityId || "â€”";
     return {
       subtitle: "",
       before:   name,
@@ -187,10 +191,10 @@ function deriveCells(log, lang) {
     };
   }
 
-  // ── Fallback ───────────────────────────────────────────────────────────────
+  // â”€â”€ Fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return {
     subtitle: "",
-    before:   log.entityLabel || log.entityId || "—",
+    before:   log.entityLabel || log.entityId || "â€”",
     after:    null,
   };
 }
@@ -268,7 +272,7 @@ export default function ActivityPage() {
 
   return (
     <div>
-      {/* ── Header ── */}
+      {/* â”€â”€ Header â”€â”€ */}
       <div className="page-header">
         <div>
           <h1 className="page-title">{isEs ? "Actividad" : "Activity"}</h1>
@@ -284,7 +288,7 @@ export default function ActivityPage() {
         </button>
       </div>
 
-      {/* ── Filters ── */}
+      {/* â”€â”€ Filters â”€â”€ */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <div className="search-bar" style={{ flex: 1, minWidth: 240 }}>
@@ -336,7 +340,7 @@ export default function ActivityPage() {
         </div>
       </div>
 
-      {/* ── Content ── */}
+      {/* â”€â”€ Content â”€â”€ */}
       {error ? (
         <div className="card" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b" }}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
@@ -421,7 +425,7 @@ export default function ActivityPage() {
                             ? "inherit"
                             : "'IBM Plex Mono', monospace",
                         }}>
-                          {before || "—"}
+                          {before || "â€”"}
                         </span>
                       </td>
 
@@ -439,7 +443,7 @@ export default function ActivityPage() {
                             {after}
                           </span>
                         ) : (
-                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
+                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>â€”</span>
                         )}
                       </td>
 
@@ -455,7 +459,7 @@ export default function ActivityPage() {
                             </div>
                           </div>
                         ) : (
-                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
+                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>â€”</span>
                         )}
                       </td>
                     </tr>
@@ -497,3 +501,6 @@ export default function ActivityPage() {
     </div>
   );
 }
+
+
+

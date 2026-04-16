@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppProvider, useApp } from "./stores/AppContext";
 import { SettingsProvider } from "./stores/SettingsContext";
 import { AuthProvider, useAuth } from "./stores/AuthContext";
-import { LangProvider } from "./i18n/index.jsx";
+import { LangProvider, useT } from "./i18n/index.jsx";
 import { useProviderConfig } from "./hooks/useProviderConfig";
 import Sidebar from "./components/ui/Sidebar";
 import Header from "./components/ui/Header";
@@ -16,7 +16,75 @@ import SettingsPage   from "./pages/SettingsPage";
 import CategoriesPage from "./pages/CategoriesPage";
 import ActivityPage   from "./pages/ActivityPage";
 import UsersPage      from "./pages/UsersPage";
-import { Loader } from "lucide-react";
+import { getRentalCountdownState, isRentalLocationName } from "./lib/locationUtils";
+
+const RENTAL_NOTIFICATION_STORAGE_KEY = "fleet:rental-notified";
+
+function loadStoredRentalNotifications() {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(RENTAL_NOTIFICATION_STORAGE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistRentalNotifications(keys) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(RENTAL_NOTIFICATION_STORAGE_KEY, JSON.stringify([...keys]));
+}
+
+function RentalNotifications({ items, onDismiss, onOpen }) {
+  if (!items.length) return null;
+
+  return (
+    <div style={{ position: "fixed", top: 88, right: 20, zIndex: 700, display: "flex", flexDirection: "column", gap: 10, width: "min(360px, calc(100vw - 32px))" }}>
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => onOpen(item)}
+          style={{
+            textAlign: "left",
+            border: "1px solid rgba(29,111,239,0.2)",
+            background: "linear-gradient(135deg, #ffffff 0%, #eef5ff 100%)",
+            boxShadow: "0 18px 42px rgba(15, 23, 42, 0.16)",
+            borderRadius: "var(--radius-lg)",
+            padding: "14px 16px",
+            cursor: "pointer",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent-red)", marginTop: 5, flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text-primary)" }}>{item.title}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4, lineHeight: 1.5 }}>{item.message}</div>
+            </div>
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDismiss(item.id);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onDismiss(item.id);
+                }
+              }}
+              style={{ color: "var(--text-muted)", fontSize: 18, lineHeight: 1, paddingLeft: 6 }}
+            >
+              ×
+            </span>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // Inactive account screen
 function InactiveScreen() {
@@ -36,33 +104,102 @@ function InactiveScreen() {
 }
 
 function Shell() {
-  const [page,        setPage]        = useState("dashboard");
+  const t = useT();
+  const [page, setPage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [detailAssetId, setDetailAssetId] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [rentalClock, setRentalClock] = useState(() => Date.now());
   const { assets, locations } = useApp();
   const { isAdmin, canDo, profile, signOut } = useAuth();
+  const notifiedRentalKeysRef = useRef(new Set(loadStoredRentalNotifications()));
 
   useProviderConfig();
 
+  const dismissNotification = useCallback((notificationId) => {
+    setNotifications((current) => current.filter((item) => item.id !== notificationId));
+  }, []);
+
+  const openAssetDetail = useCallback((assetId) => {
+    setPage("dashboard");
+    setDetailAssetId(assetId);
+  }, []);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setRentalClock(Date.now()), 30000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    const now = new Date(rentalClock);
+
+    assets.forEach((asset) => {
+      if (!isRentalLocationName(asset.location || "")) return;
+
+      const rentalState = getRentalCountdownState(asset, now, t.lang);
+      if (!rentalState || (rentalState.phase !== "due" && rentalState.phase !== "overdue")) return;
+
+      const notificationKey = [
+        asset.id,
+        asset.location,
+        rentalState.kind,
+        asset.rentalStartDate || "",
+        asset.rentalEndDate || "",
+        asset.rentalStartTime || "",
+        asset.rentalEndTime || "",
+      ].join("|");
+
+      if (notifiedRentalKeysRef.current.has(notificationKey)) return;
+
+      notifiedRentalKeysRef.current.add(notificationKey);
+      persistRentalNotifications(notifiedRentalKeysRef.current);
+
+      const notificationId = `${notificationKey}|${Date.now()}`;
+      const title = t.lang === "en"
+        ? `Rental due: ${asset.brand} ${asset.model}`
+        : `Alquiler vencido: ${asset.brand} ${asset.model}`;
+      const message = rentalState.phase === "overdue"
+        ? (t.lang === "en"
+          ? `The asset already has ${rentalState.displayLabel} extra. Click to open asset information.`
+          : `El activo ya acumula ${rentalState.displayLabel} extra. Haz clic para abrir la información del activo.`)
+        : (t.lang === "en"
+          ? "The rental countdown reached 0. Click to open asset information."
+          : "El conteo del alquiler llegó a 0. Haz clic para abrir la información del activo.");
+
+      setNotifications((current) => [...current, { id: notificationId, assetId: asset.id, title, message }]);
+      window.setTimeout(() => {
+        setNotifications((current) => current.filter((item) => item.id !== notificationId));
+      }, 5000);
+    });
+  }, [assets, rentalClock, t.lang]);
+
   // Build page map — filtered by permissions
-  const PAGES = {
-    dashboard:  <DashboardPage />,
-    ...(canDo("module_locations")  ? { locations:  <LocationsPage /> }  : {}),
+  const dashboardPage = (
+    <DashboardPage
+      detailAssetId={detailAssetId}
+      onOpenAssetDetail={openAssetDetail}
+      onCloseAssetDetail={() => setDetailAssetId(null)}
+    />
+  );
+
+  const pages = {
+    dashboard: dashboardPage,
+    ...(canDo("module_locations") ? { locations: <LocationsPage /> } : {}),
     ...(canDo("module_categories") ? { categories: <CategoriesPage /> } : {}),
-    ...(canDo("module_activity")   ? { activity:   <ActivityPage /> }   : {}),
-    ...(canDo("module_transfers")  ? { transfers:  <TransfersPage /> }  : {}),
+    ...(canDo("module_activity") ? { activity: <ActivityPage /> } : {}),
+    ...(canDo("module_transfers") ? { transfers: <TransfersPage /> } : {}),
     ...(canDo("module_gpshistory") ? { gpshistory: <GpsHistoryPage /> } : {}),
-    ...(canDo("module_settings")   ? { settings:   <SettingsPage /> }   : {}),
-    ...(isAdmin                    ? { users:       <UsersPage /> }      : {}),
+    ...(canDo("module_settings") ? { settings: <SettingsPage /> } : {}),
+    ...(isAdmin ? { users: <UsersPage /> } : {}),
   };
 
-  // If current page is no longer accessible, go to dashboard
-  const currentPage = PAGES[page] ? page : "dashboard";
+  const currentPage = pages[page] ? page : "dashboard";
 
   return (
     <div className="app-shell">
       <Sidebar
         page={currentPage}
-        onNav={p => setPage(p)}
+        onNav={(nextPage) => setPage(nextPage)}
         locationCount={locations.length}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -72,12 +209,20 @@ function Shell() {
         onSignOut={signOut}
       />
       <div className="main-content">
-        <Header page={currentPage} onMenuToggle={() => setSidebarOpen(o => !o)} />
+        <Header page={currentPage} onMenuToggle={() => setSidebarOpen((open) => !open)} />
         <div className="page-body">
           <SyncBanner />
-          {PAGES[currentPage] ?? <DashboardPage />}
+          {pages[currentPage] ?? dashboardPage}
         </div>
       </div>
+      <RentalNotifications
+        items={notifications}
+        onDismiss={dismissNotification}
+        onOpen={(item) => {
+          dismissNotification(item.id);
+          openAssetDetail(item.assetId);
+        }}
+      />
     </div>
   );
 }

@@ -24,7 +24,7 @@ import { deleteFiles, diffRemovedAssetStoragePaths, uploadAssetFiles, collectAss
 import { isOnline } from "../lib/supabase";
 import { useAuth } from "./AuthContext";
 import { DEFAULT_COUNTRIES, buildFlagMap } from "../lib/countries";
-import { isRentalLocationName } from "../lib/locationUtils";
+import { getRentalCountdownState, getRentalRangeKind, isRentalLocationName } from "../lib/locationUtils";
 
 const AppContext = createContext(null);
 
@@ -117,6 +117,24 @@ function summarizeCountry(country) {
 function diffKeys(before = {}, after = {}) {
   const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);
   return [...keys].filter((key) => JSON.stringify(before?.[key]) !== JSON.stringify(after?.[key]));
+}
+
+function findLocationRecord(locations = [], { id, name, country } = {}) {
+  return locations.find((location) => location.id === id)
+    || locations.find((location) => location.name === name && location.country === country)
+    || null;
+}
+
+function findLatestRentalTransfer(transfers = [], asset) {
+  if (!asset) return null;
+  return [...transfers]
+    .sort((a, b) => new Date(b.ts || 0).getTime() - new Date(a.ts || 0).getTime())
+    .find((transfer) =>
+      transfer.assetId === asset.id
+      && Boolean(getRentalRangeKind(transfer))
+      && transfer.toLocation === asset.location
+      && transfer.toCountry === asset.country
+    ) || null;
 }
 
 function reducer(state, action) {
@@ -497,8 +515,11 @@ export function AppProvider({ children }) {
     async (payload) => {
       const asset = state.assets.find((item) => item.id === payload.assetId);
       const destination = state.locations.find((location) => location.id === payload.toLocationId);
-      const currentLocation = state.locations.find((location) => location.id === asset?.locationId)
-        || state.locations.find((location) => location.name === asset?.location && location.country === asset?.country);
+      const currentLocation = findLocationRecord(state.locations, {
+        id: asset?.locationId,
+        name: asset?.location,
+        country: asset?.country,
+      });
       const rentalDestination = isRentalLocationName(destination?.name || payload.toLocationName);
       const transferId = genId("TRF");
       const ts = new Date().toISOString();
@@ -580,6 +601,108 @@ export function AppProvider({ children }) {
       } catch (error) {
         console.error("[transferAsset]", error);
         setSyncError("Error al trasladar el activo: " + error.message);
+        throw error;
+      }
+    },
+    [logActivity, state.assets, state.locations, state.transfers]
+  );
+
+  const returnRentalAsset = useCallback(
+    async (assetId) => {
+      const asset = state.assets.find((item) => item.id === assetId);
+      if (!asset) throw new Error("No se encontro el activo a retornar.");
+
+      const rentalState = getRentalCountdownState(asset, new Date(), "es");
+      if (!rentalState?.canReturn) {
+        throw new Error("El activo aun no esta disponible para retorno.");
+      }
+
+      const sourceTransfer = findLatestRentalTransfer(state.transfers, asset);
+      if (!sourceTransfer?.fromLocation) {
+        throw new Error("No se encontro la ubicacion original del alquiler.");
+      }
+
+      const originLocation = findLocationRecord(state.locations, {
+        name: sourceTransfer.fromLocation,
+        country: sourceTransfer.fromCountry,
+      });
+      const transferId = genId("TRF");
+      const ts = new Date().toISOString();
+      const returnPayload = {
+        assetId: asset.id,
+        transferId,
+        ts,
+        toLocationId: originLocation?.id ?? null,
+        toLocationName: originLocation?.name ?? sourceTransfer.fromLocation,
+        toCountry: originLocation?.country ?? sourceTransfer.fromCountry ?? asset.country,
+        toAddress: originLocation?.address ?? sourceTransfer.fromAddress ?? null,
+        fromAddress: sourceTransfer.toAddress ?? null,
+        rentalStartDate: null,
+        rentalEndDate: null,
+        rentalStartTime: null,
+        rentalEndTime: null,
+      };
+
+      dispatch({ type: "TRANSFER_ASSET_LOCAL", payload: returnPayload });
+      if (!isOnline()) return returnPayload;
+
+      try {
+        const savedTransfer = await dbInsertTransfer({
+          id: transferId,
+          assetId: asset.id,
+          fromLocation: asset.location ?? null,
+          fromCountry: asset.country ?? null,
+          fromAddress: sourceTransfer.toAddress ?? null,
+          toLocation: returnPayload.toLocationName,
+          toCountry: returnPayload.toCountry,
+          toAddress: returnPayload.toAddress,
+          rentalStartDate: null,
+          rentalEndDate: null,
+          rentalStartTime: null,
+          rentalEndTime: null,
+          ts,
+        });
+        const savedAsset = await dbUpdateAsset({
+          ...asset,
+          locationId: returnPayload.toLocationId,
+          location: returnPayload.toLocationName,
+          country: returnPayload.toCountry,
+          rentalStartDate: null,
+          rentalEndDate: null,
+          rentalStartTime: null,
+          rentalEndTime: null,
+        });
+        dispatch({ type: "UPDATE_ASSET", payload: savedAsset });
+        dispatch({
+          type: "SET_TRANSFERS",
+          payload: state.transfers
+            .filter((item) => item.id !== transferId)
+            .concat(savedTransfer)
+            .sort((a, b) => new Date(b.ts || 0).getTime() - new Date(a.ts || 0).getTime()),
+        });
+        setSyncError(null);
+        await logActivity({
+          action: "rental_return",
+          entityType: "asset",
+          entityId: asset.id,
+          entityLabel: `${asset.brand} ${asset.model}`.trim(),
+          details: {
+            assetId: asset.assetId ?? "",
+            brand: asset.brand ?? "",
+            model: asset.model ?? "",
+            fromLocation: asset.location ?? null,
+            fromCountry: asset.country ?? null,
+            fromAddress: sourceTransfer.toAddress ?? null,
+            toLocation: returnPayload.toLocationName,
+            toCountry: returnPayload.toCountry,
+            toAddress: returnPayload.toAddress,
+            title: "retorno de alquiler",
+          },
+        });
+        return savedAsset;
+      } catch (error) {
+        console.error("[returnRentalAsset]", error);
+        setSyncError("Error al retornar el activo: " + error.message);
         throw error;
       }
     },
@@ -793,6 +916,7 @@ export function AppProvider({ children }) {
         updateLocation,
         deleteLocation,
         transferAsset,
+        returnRentalAsset,
         addCategory,
         updateCategory,
         deleteCategory,

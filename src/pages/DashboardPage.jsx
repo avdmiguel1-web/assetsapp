@@ -42,7 +42,7 @@ const KPI_FILTERS = {
   gps: (a) => a.hasTelemetry,
 };
 
-export default function DashboardPage() {
+export default function DashboardPage({ detailAssetId, onOpenAssetDetail, onCloseAssetDetail }) {
   const t = useT();
   const { canDo } = useAuth();
   const { assets, countries, locations, CATEGORIES, deleteAsset, FLAG_MAP } = useApp();
@@ -52,11 +52,18 @@ export default function DashboardPage() {
   const [filterCat, setFilterCat] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
-  const [detailAsset, setDetailAsset] = useState(null);
+  const [localDetailAssetId, setLocalDetailAssetId] = useState(null);
   const [editAsset, setEditAsset] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const resolvedDetailAssetId = detailAssetId ?? localDetailAssetId;
+  const openAssetDetail = onOpenAssetDetail ?? ((assetId) => setLocalDetailAssetId(assetId));
+  const closeAssetDetail = onCloseAssetDetail ?? (() => setLocalDetailAssetId(null));
+  const detailAsset = useMemo(
+    () => assets.find((asset) => asset.id === resolvedDetailAssetId) || null,
+    [assets, resolvedDetailAssetId]
+  );
 
   const total = assets.length;
   const operative = assets.filter((a) => a.status === "Operativo").length;
@@ -109,6 +116,12 @@ export default function DashboardPage() {
     setPage(1);
   }, [kpiFilter, activeTab, search, filterCat, filterStatus, filterLocation]);
 
+  useEffect(() => {
+    if (resolvedDetailAssetId && !detailAsset) {
+      closeAssetDetail();
+    }
+  }, [closeAssetDetail, detailAsset, resolvedDetailAssetId]);
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const paginated = useMemo(() => {
@@ -124,7 +137,7 @@ export default function DashboardPage() {
 
     if (window.confirm(message)) {
       deleteAsset(asset.id);
-      if (detailAsset?.id === asset.id) setDetailAsset(null);
+      if (detailAsset?.id === asset.id) closeAssetDetail();
     }
   };
 
@@ -354,7 +367,7 @@ export default function DashboardPage() {
                   {paginated.map((asset) => (
                     <tr
                       key={asset.id}
-                      onClick={() => setDetailAsset(asset)}
+                      onClick={() => openAssetDetail(asset.id)}
                       style={{ borderBottom: "1px solid var(--border-subtle)", cursor: "pointer", transition: "background 0.12s" }}
                       onMouseOver={(event) => { event.currentTarget.style.background = "var(--bg-hover)"; }}
                       onMouseOut={(event) => { event.currentTarget.style.background = ""; }}
@@ -384,7 +397,7 @@ export default function DashboardPage() {
                       </td>
                       <td style={{ padding: "11px 16px", verticalAlign: "middle", textAlign: "right" }} onClick={(event) => event.stopPropagation()}>
                         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                          {canDo("asset_view_detail") && <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--accent-blue)" }} onClick={() => setDetailAsset(asset)}><Eye size={14} /></button>}
+                          {canDo("asset_view_detail") && <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--accent-blue)" }} onClick={() => openAssetDetail(asset.id)}><Eye size={14} /></button>}
                           {canDo("asset_edit") && <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditAsset(asset)}><Pencil size={14} /></button>}
                           {canDo("asset_delete") && <button className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--accent-red)" }} onClick={(event) => handleDelete(event, asset)}><Trash2 size={14} /></button>}
                         </div>
@@ -422,11 +435,11 @@ export default function DashboardPage() {
       {detailAsset && (
         <AssetDetailModal
           open
-          onClose={() => setDetailAsset(null)}
+          onClose={closeAssetDetail}
           asset={detailAsset}
           onEdit={() => {
             setEditAsset(detailAsset);
-            setDetailAsset(null);
+            closeAssetDetail();
           }}
         />
       )}

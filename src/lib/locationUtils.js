@@ -98,6 +98,13 @@ export function getRemainingRentalDays(endDate, today = new Date()) {
   return Math.max(0, diffDays);
 }
 
+export function getSignedRentalDays(endDate, today = new Date()) {
+  const end = parseDateInputValue(endDate);
+  if (!end) return null;
+  const current = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+  return Math.round((end.getTime() - current.getTime()) / 86400000);
+}
+
 export function formatRemainingRentalDaysLabel(endDate, locale = "es") {
   const remainingDays = getRemainingRentalDays(endDate);
   if (remainingDays == null) return "";
@@ -121,12 +128,25 @@ export function getRemainingRentalMinutes(endTime, now = new Date()) {
   return Math.max(0, diffMinutes);
 }
 
-export function formatRemainingRentalHoursLabel(endTime, locale = "es") {
-  const remainingMinutes = getRemainingRentalMinutes(endTime);
-  if (remainingMinutes == null) return "";
+export function getSignedRentalMinutes(endTime, now = new Date()) {
+  const time = parseTimeInputValue(endTime);
+  if (!time) return null;
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    time.hours,
+    time.minutes,
+    0,
+    0
+  );
+  return Math.ceil((end.getTime() - now.getTime()) / 60000);
+}
 
-  const hours = Math.floor(remainingMinutes / 60);
-  const minutes = remainingMinutes % 60;
+function formatMinuteAmountLabel(totalMinutes, locale = "es") {
+  const safeMinutes = Math.max(0, totalMinutes ?? 0);
+  const hours = Math.floor(safeMinutes / 60);
+  const minutes = safeMinutes % 60;
 
   if (locale === "en") {
     if (hours && minutes) return `${hours} h ${minutes} min`;
@@ -139,9 +159,81 @@ export function formatRemainingRentalHoursLabel(endTime, locale = "es") {
   return `${minutes} min`;
 }
 
+export function formatRemainingRentalHoursLabel(endTime, locale = "es") {
+  const remainingMinutes = getRemainingRentalMinutes(endTime);
+  if (remainingMinutes == null) return "";
+  return formatMinuteAmountLabel(remainingMinutes, locale);
+}
+
 export function formatRemainingRentalLabel(entity = {}, locale = "es") {
   const kind = getRentalRangeKind(entity);
   if (kind === "date") return formatRemainingRentalDaysLabel(entity.rentalEndDate, locale);
   if (kind === "time") return formatRemainingRentalHoursLabel(entity.rentalEndTime, locale);
   return "";
+}
+
+export function getRentalCountdownState(entity = {}, now = new Date(), locale = "es") {
+  const kind = getRentalRangeKind(entity);
+
+  if (kind === "date") {
+    const signedDays = getSignedRentalDays(entity.rentalEndDate, now);
+    if (signedDays == null) return null;
+    if (signedDays < 0) {
+      const extraDays = Math.abs(signedDays);
+      const extraLabel = locale === "en"
+        ? `${extraDays} day${extraDays === 1 ? "" : "s"}`
+        : `${extraDays} dÃ­a${extraDays === 1 ? "" : "s"}`;
+      return {
+        kind,
+        phase: "overdue",
+        amount: extraDays,
+        label: extraLabel,
+        displayLabel: extraLabel,
+        fieldKey: "daysExtra",
+        canReturn: true,
+      };
+    }
+
+    return {
+      kind,
+      phase: signedDays === 0 ? "due" : "remaining",
+      amount: signedDays,
+      label: locale === "en"
+        ? `${signedDays} day${signedDays === 1 ? "" : "s"}`
+        : `${signedDays} dÃ­a${signedDays === 1 ? "" : "s"}`,
+      displayLabel: locale === "en"
+        ? `${signedDays} day${signedDays === 1 ? "" : "s"}`
+        : `${signedDays} dÃ­a${signedDays === 1 ? "" : "s"}`,
+      fieldKey: "daysRemaining",
+      canReturn: signedDays === 0,
+    };
+  }
+
+  if (kind === "time") {
+    const signedMinutes = getSignedRentalMinutes(entity.rentalEndTime, now);
+    if (signedMinutes == null) return null;
+    if (signedMinutes < 0) {
+      return {
+        kind,
+        phase: "overdue",
+        amount: Math.abs(signedMinutes),
+        label: formatMinuteAmountLabel(Math.abs(signedMinutes), locale),
+        displayLabel: formatMinuteAmountLabel(Math.abs(signedMinutes), locale),
+        fieldKey: "hoursExtra",
+        canReturn: true,
+      };
+    }
+
+    return {
+      kind,
+      phase: signedMinutes === 0 ? "due" : "remaining",
+      amount: signedMinutes,
+      label: formatMinuteAmountLabel(signedMinutes, locale),
+      displayLabel: formatMinuteAmountLabel(signedMinutes, locale),
+      fieldKey: "hoursRemaining",
+      canReturn: signedMinutes === 0,
+    };
+  }
+
+  return null;
 }

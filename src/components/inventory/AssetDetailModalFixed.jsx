@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { X, Pencil, MapPin, Calendar, Tag, FileText, Download, Zap, ZapOff, Satellite, Receipt, Wrench, Package, Eye } from "lucide-react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { X, Pencil, MapPin, Calendar, Tag, FileText, Download, Zap, ZapOff, Satellite, Receipt, Wrench, Package, Eye, RotateCcw } from "lucide-react";
 import { useTelemetry } from "../../hooks/useTelemetry";
 import { useApp } from "../../stores/AppContext";
 import ResolvedImage from "../common/ResolvedImage";
 import { useT } from "../../i18n/index.jsx";
-import { formatDateRangeValue, formatRemainingRentalLabel, formatTimeRangeValue, getRentalRangeKind, isRentalLocationName } from "../../lib/locationUtils";
+import { formatDateRangeValue, formatTimeRangeValue, getRentalCountdownState, getRentalRangeKind, isRentalLocationName } from "../../lib/locationUtils";
 
 const STATUS = { Operativo: "badge-green", Mantenimiento: "badge-amber", Baja: "badge-red" };
 
@@ -12,7 +12,7 @@ function Row({ label, value }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "9px 0", borderBottom: "1px solid var(--border-subtle)", gap: 16 }}>
       <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap", flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: 13, color: "var(--text-primary)", textAlign: "right" }}>{value ?? "—"}</span>
+      <span style={{ fontSize: 13, color: "var(--text-primary)", textAlign: "right" }}>{value ?? "â€”"}</span>
     </div>
   );
 }
@@ -187,7 +187,7 @@ function FileItem({ file }) {
       >
         {kind === "image" && src
           ? <ResolvedImage src={src} alternateSrc={file.sourceUrl} alt={file.name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: "var(--radius-sm)", flexShrink: 0, border: "1px solid var(--border-subtle)" }} />
-          : <span style={{ fontSize: 20, flexShrink: 0 }}>{kind === "pdf" ? "📄" : kind === "office" ? "📊" : "📎"}</span>}
+          : <span style={{ fontSize: 20, flexShrink: 0 }}>{kind === "pdf" ? "ðŸ“„" : kind === "office" ? "ðŸ“Š" : "ðŸ“Ž"}</span>}
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</span>
         <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>{fmt(file.size)}</span>
         {isPreviewable && (
@@ -222,7 +222,17 @@ function FilesBlock({ title, icon: Icon, color, files }) {
 
 export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) {
   const t = useT();
-  const { FLAG_MAP, locations } = useApp();
+  const { FLAG_MAP, locations, returnRentalAsset } = useApp();
+  const [rentalClock, setRentalClock] = useState(() => Date.now());
+  const [returning, setReturning] = useState(false);
+  const [returnError, setReturnError] = useState("");
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const intervalId = window.setInterval(() => setRentalClock(Date.now()), 30000);
+    return () => window.clearInterval(intervalId);
+  }, [open]);
+
   if (!open || !asset) return null;
 
   const locale = t.lang === "en" ? "en-US" : "es-VE";
@@ -237,12 +247,30 @@ export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) 
   };
   const isRentalAsset = isRentalLocationName(asset.location || currentLocation?.name || "");
   const rentalKind = getRentalRangeKind(rentalInfo);
-  const remainingRentalLabel = isRentalAsset ? formatRemainingRentalLabel(rentalInfo, t.lang) : "";
+  const rentalState = isRentalAsset ? getRentalCountdownState(rentalInfo, new Date(rentalClock), t.lang) : null;
+  const rentalCountLabelMap = {
+    daysRemaining: t.detail.daysRemaining || "Dias restantes",
+    hoursRemaining: t.detail.hoursRemaining || "Horas restantes",
+    daysExtra: t.detail.daysExtra || "Dias extras",
+    hoursExtra: t.detail.hoursExtra || "Horas extras",
+  };
   const rentalRangeLabel = rentalKind === "date"
     ? formatDateRangeValue(rentalInfo.rentalStartDate, rentalInfo.rentalEndDate, locale)
     : rentalKind === "time"
       ? formatTimeRangeValue(rentalInfo.rentalStartTime, rentalInfo.rentalEndTime, locale)
       : "";
+
+  const handleReturn = async () => {
+    setReturnError("");
+    setReturning(true);
+    try {
+      await returnRentalAsset(asset.id);
+    } catch (error) {
+      setReturnError(error?.message || "No se pudo retornar el activo.");
+    } finally {
+      setReturning(false);
+    }
+  };
 
   return (
     <div className="modal-overlay" onClick={(event) => event.target === event.currentTarget && onClose()}>
@@ -257,7 +285,7 @@ export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) 
               <div style={{ display: "flex", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
                 <span className={`badge ${STATUS[asset.status] || "badge-muted"}`}>{asset.status}</span>
                 <span className="badge badge-muted">{asset.category}</span>
-                {asset.hasTelemetry && <span className="badge badge-blue"><Satellite size={10} /> GPS · Device {asset.flespiDeviceId}</span>}
+                {asset.hasTelemetry && <span className="badge badge-blue"><Satellite size={10} /> GPS Â· Device {asset.flespiDeviceId}</span>}
                 {asset.plate && <span className="badge badge-muted" style={{ fontFamily: "'IBM Plex Mono',monospace" }}>{asset.plate}</span>}
               </div>
             </div>
@@ -279,13 +307,12 @@ export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) 
             <Row label={t.detail.status || "Estado"} value={<span className={`badge ${STATUS[asset.status] || "badge-muted"}`}>{asset.status}</span>} />
             <Row label={t.detail.country || "Pais"} value={`${FLAG_MAP[asset.country] || ""} ${asset.country}`} />
             <Row label={t.detail.location || "Ubicacion"} value={<span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} color="var(--accent-blue)" />{asset.location}</span>} />
-            <Row label={t.detail.address || "Direccion"} value={currentLocation?.address || "—"} />
-            <Row label={t.detail.locationDescription || "Descripcion ubicacion"} value={currentLocation?.description || "—"} />
-            {isRentalAsset && rentalKind === "date" && <Row label={t.detail.daysRemaining || "Dias restantes"} value={remainingRentalLabel || "—"} />}
-            {isRentalAsset && rentalKind === "time" && <Row label={t.detail.hoursRemaining || "Horas restantes"} value={remainingRentalLabel || "—"} />}
-            {isRentalAsset && rentalKind === "date" && <Row label={t.detail.rentalDate || "Fecha alquiler"} value={rentalRangeLabel || "—"} />}
-            {isRentalAsset && rentalKind === "time" && <Row label={t.detail.rentalTime || "Hora alquiler"} value={rentalRangeLabel || "—"} />}
-            <Row label={t.detail.registered || "Registrado"} value={asset.createdAt ? new Date(asset.createdAt).toLocaleString(locale, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} />
+            <Row label={t.detail.address || "Direccion"} value={currentLocation?.address || "â€”"} />
+            <Row label={t.detail.locationDescription || "Descripcion ubicacion"} value={currentLocation?.description || "â€”"} />
+            {isRentalAsset && rentalState && <Row label={rentalCountLabelMap[rentalState.fieldKey] || "Tiempo"} value={rentalState.displayLabel || "â€”"} />}
+            {isRentalAsset && rentalKind === "date" && <Row label={t.detail.rentalDate || "Fecha alquiler"} value={rentalRangeLabel || "â€”"} />}
+            {isRentalAsset && rentalKind === "time" && <Row label={t.detail.rentalTime || "Hora alquiler"} value={rentalRangeLabel || "â€”"} />}
+            <Row label={t.detail.registered || "Registrado"} value={asset.createdAt ? new Date(asset.createdAt).toLocaleString(locale, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "â€”"} />
             {asset.description && (
               <div style={{ marginTop: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>{t.detail.description || "Descripcion"}</div>
@@ -321,8 +348,18 @@ export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) 
         </div>
 
         <div className="modal-footer">
+          {returnError && (
+            <div style={{ marginRight: "auto", fontSize: 12, color: "var(--accent-red)" }}>{returnError}</div>
+          )}
+          {isRentalAsset && rentalState && (
+            <button className="btn btn-primary" onClick={handleReturn} disabled={!rentalState.canReturn || returning}>
+              <RotateCcw size={14} />
+              {returning ? (t.detail.returning || "Retornando...") : (t.detail.returnAction || "Retornar")}
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={onClose}>{t.detail.close || "Cerrar"}</button>
-        </div>
+
+      </div>
       </div>
     </div>
   );
@@ -361,7 +398,7 @@ function LiveTelemetry({ deviceId, gpsProvider = "flespi" }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
               <div style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
                 <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", color: "var(--accent-blue)", textTransform: "uppercase", marginBottom: 4 }}>Velocidad</div>
-                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 16, color: "var(--text-primary)", fontWeight: 600 }}>{telemetry.speed != null ? `${telemetry.speed} km/h` : "—"}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 16, color: "var(--text-primary)", fontWeight: 600 }}>{telemetry.speed != null ? `${telemetry.speed} km/h` : "â€”"}</div>
               </div>
               <div style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
                 <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", color: "var(--accent-amber)", textTransform: "uppercase", marginBottom: 4 }}>Combustible</div>
@@ -383,7 +420,7 @@ function LiveTelemetry({ deviceId, gpsProvider = "flespi" }) {
             )}
             <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
               <Calendar size={9} />
-              {telemetry.timestamp ? new Date(telemetry.timestamp * 1000).toLocaleString("es-VE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}
+              {telemetry.timestamp ? new Date(telemetry.timestamp * 1000).toLocaleString("es-VE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "â€”"}
             </div>
           </>
         );
@@ -399,3 +436,7 @@ function SectionTitle({ icon, children }) {
     </div>
   );
 }
+
+
+
+
