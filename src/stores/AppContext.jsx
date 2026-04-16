@@ -27,6 +27,7 @@ import { DEFAULT_COUNTRIES, buildFlagMap } from "../lib/countries";
 import { getRentalCountdownState, getRentalRangeKind, isRentalLocationName } from "../lib/locationUtils";
 
 const AppContext = createContext(null);
+const TRANSFER_BLOCKED_RENTAL_RETURN_REQUIRED = "TRANSFER_BLOCKED_RENTAL_RETURN_REQUIRED";
 
 export const DEFAULT_CATEGORIES = [
   "Maquinaria Pesada",
@@ -514,6 +515,14 @@ export function AppProvider({ children }) {
   const transferAsset = useCallback(
     async (payload) => {
       const asset = state.assets.find((item) => item.id === payload.assetId);
+      if (!asset) throw new Error("No se encontro el activo a trasladar.");
+
+      if (isRentalLocationName(asset.location || "")) {
+        const error = new Error(TRANSFER_BLOCKED_RENTAL_RETURN_REQUIRED);
+        error.code = TRANSFER_BLOCKED_RENTAL_RETURN_REQUIRED;
+        throw error;
+      }
+
       const destination = state.locations.find((location) => location.id === payload.toLocationId);
       const currentLocation = findLocationRecord(state.locations, {
         id: asset?.locationId,

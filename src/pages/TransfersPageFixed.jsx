@@ -35,12 +35,21 @@ function getRentalSummary(transfer, locale) {
   return null;
 }
 
+function getTransferErrorMessage(error, t) {
+  if (error?.code === "TRANSFER_BLOCKED_RENTAL_RETURN_REQUIRED" || error?.message === "TRANSFER_BLOCKED_RENTAL_RETURN_REQUIRED") {
+    return t.transfers.errorRentalReturnRequired || "El activo está en una ubicación de alquiler. Debes retornarlo con el botón Retornar antes de trasladarlo.";
+  }
+
+  return error?.message || t.common.error || "Error";
+}
+
 function TransferModal({ open, onClose }) {
   const t = useT();
   const { assets, locations, transferAsset, FLAG_MAP } = useApp();
   const [assetId, setAssetId] = useState("");
   const [toLocationId, setToLocationId] = useState("");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [rentalStartDate, setRentalStartDate] = useState("");
   const [rentalEndDate, setRentalEndDate] = useState("");
   const [rentalStartTime, setRentalStartTime] = useState("");
@@ -59,6 +68,7 @@ function TransferModal({ open, onClose }) {
   });
   const destOptions = locations.filter((location) => location.id !== selectedAsset?.locationId && location.name !== selectedAsset?.location);
   const isRentalDestination = isRentalLocationName(selectedDest?.name || "");
+  const isRentalSource = isRentalLocationName(selectedAsset?.location || "");
   const locale = t.lang === "en" ? "en-US" : "es-VE";
 
   const filteredAssets = useMemo(() => {
@@ -105,6 +115,7 @@ function TransferModal({ open, onClose }) {
       setRentalEndTime("");
       setAssetSearch("");
       setShowDropdown(false);
+      setSubmitting(false);
     }
   }, [open]);
 
@@ -128,7 +139,7 @@ function TransferModal({ open, onClose }) {
     setShowDropdown(false);
   };
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     const hasAnyRentalDate = Boolean(rentalStartDate || rentalEndDate);
     const hasAnyRentalTime = Boolean(rentalStartTime || rentalEndTime);
     const hasCompleteRentalDate = Boolean(rentalStartDate && rentalEndDate);
@@ -141,6 +152,11 @@ function TransferModal({ open, onClose }) {
 
     if (!selectedDest) {
       setError(t.transfers.errorDest);
+      return;
+    }
+
+    if (isRentalSource) {
+      setError(t.transfers.errorRentalReturnRequired || "El activo está en una ubicación de alquiler. Debes retornarlo con el botón Retornar antes de trasladarlo.");
       return;
     }
 
@@ -169,18 +185,26 @@ function TransferModal({ open, onClose }) {
       return;
     }
 
-    transferAsset({
-      assetId: selectedAsset.id,
-      toLocationId: selectedDest.id,
-      toLocationName: selectedDest.name,
-      toCountry: selectedDest.country,
-      toAddress: selectedDest.address || "",
-      rentalStartDate: isRentalDestination && hasCompleteRentalDate ? rentalStartDate : "",
-      rentalEndDate: isRentalDestination && hasCompleteRentalDate ? rentalEndDate : "",
-      rentalStartTime: isRentalDestination && hasCompleteRentalTime ? rentalStartTime : "",
-      rentalEndTime: isRentalDestination && hasCompleteRentalTime ? rentalEndTime : "",
-    });
-    onClose();
+    setSubmitting(true);
+
+    try {
+      await transferAsset({
+        assetId: selectedAsset.id,
+        toLocationId: selectedDest.id,
+        toLocationName: selectedDest.name,
+        toCountry: selectedDest.country,
+        toAddress: selectedDest.address || "",
+        rentalStartDate: isRentalDestination && hasCompleteRentalDate ? rentalStartDate : "",
+        rentalEndDate: isRentalDestination && hasCompleteRentalDate ? rentalEndDate : "",
+        rentalStartTime: isRentalDestination && hasCompleteRentalTime ? rentalStartTime : "",
+        rentalEndTime: isRentalDestination && hasCompleteRentalTime ? rentalEndTime : "",
+      });
+      onClose();
+    } catch (transferError) {
+      setError(getTransferErrorMessage(transferError, t));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!open) return null;
@@ -384,6 +408,12 @@ function TransferModal({ open, onClose }) {
             </div>
           )}
 
+          {selectedAsset && isRentalSource && (
+            <div style={{ display: "flex", gap: 6, alignItems: "center", color: "var(--accent-amber)", fontSize: 12 }}>
+              <AlertCircle size={13} /> {t.transfers.errorRentalReturnRequired || "El activo está en una ubicación de alquiler. Debes retornarlo con el botón Retornar antes de trasladarlo."}
+            </div>
+          )}
+
           {error && (
             <div style={{ display: "flex", gap: 6, alignItems: "center", color: "var(--accent-red)", fontSize: 12 }}>
               <AlertCircle size={13} /> {error}
@@ -392,8 +422,8 @@ function TransferModal({ open, onClose }) {
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>{t.transfers.cancel}</button>
-          <button className="btn btn-primary" onClick={handleTransfer} disabled={!selectedAsset || !selectedDest}>
+          <button className="btn btn-secondary" onClick={onClose} disabled={submitting}>{t.transfers.cancel}</button>
+          <button className="btn btn-primary" onClick={handleTransfer} disabled={!selectedAsset || !selectedDest || isRentalSource || submitting}>
             <ArrowRight size={14} /> {t.transfers.confirm}
           </button>
         </div>

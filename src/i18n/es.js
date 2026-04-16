@@ -177,6 +177,7 @@
     errorRentalMode:"Selecciona solo un tipo de alquiler: fecha u hora.",
     errorRentalDateOrder:"La fecha inicial no puede ser mayor que la fecha final.",
     errorRentalTimeOrder:"La hora inicial no puede ser mayor que la hora final.",
+    errorRentalReturnRequired:"El activo está en una ubicación de alquiler. Debes retornarlo con el botón Retornar antes de trasladarlo.",
     cancel:       "Cancelar",
     confirm:      "Confirmar Traslado",
     errorAsset:   "Selecciona el activo a trasladar.",
@@ -358,7 +359,6 @@
     duplicate:    "Ya existe una categoría con este nombre",
   },
 };
-
 
 
 

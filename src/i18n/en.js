@@ -172,6 +172,7 @@
     errorRentalMode:"Select only one rental type: date or time.",
     errorRentalDateOrder:"The start date cannot be later than the end date.",
     errorRentalTimeOrder:"The start time cannot be later than the end time.",
+    errorRentalReturnRequired:"The asset is in a rental location. You must return it with the Return button before transferring it.",
     cancel:       "Cancel",
     confirm:      "Confirm Transfer",
     errorAsset:   "Select the asset to transfer.",
@@ -343,7 +344,6 @@
     duplicate:    "A category with this name already exists",
   },
 };
-
 
 
 
