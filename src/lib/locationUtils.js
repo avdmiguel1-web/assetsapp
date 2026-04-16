@@ -182,7 +182,7 @@ export function getRentalCountdownState(entity = {}, now = new Date(), locale = 
       const extraDays = Math.abs(signedDays);
       const extraLabel = locale === "en"
         ? `${extraDays} day${extraDays === 1 ? "" : "s"}`
-        : `${extraDays} dÃ­a${extraDays === 1 ? "" : "s"}`;
+        : `${extraDays} dí­a${extraDays === 1 ? "" : "s"}`;
       return {
         kind,
         phase: "overdue",
@@ -200,10 +200,10 @@ export function getRentalCountdownState(entity = {}, now = new Date(), locale = 
       amount: signedDays,
       label: locale === "en"
         ? `${signedDays} day${signedDays === 1 ? "" : "s"}`
-        : `${signedDays} dÃ­a${signedDays === 1 ? "" : "s"}`,
+        : `${signedDays} dí­a${signedDays === 1 ? "" : "s"}`,
       displayLabel: locale === "en"
         ? `${signedDays} day${signedDays === 1 ? "" : "s"}`
-        : `${signedDays} dÃ­a${signedDays === 1 ? "" : "s"}`,
+        : `${signedDays} dí­a${signedDays === 1 ? "" : "s"}`,
       fieldKey: "daysRemaining",
       canReturn: signedDays === 0,
     };

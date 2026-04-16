@@ -123,7 +123,7 @@
     modalTitleEdit:"Editar Ubicación",
     modalSub:     "Registra un sitio fí­sico donde se almacenan o usan activos",
     nameLabel:    "Nombre de la Ubicación *",
-    namePlaceholder:"Ej: AlmacÃ©n Principal Valencia",
+    namePlaceholder:"Ej: Almacén Principal Valencia",
     countryLabel: "Paí­s *",
     selectCountry:"Seleccionar paí­s...",
     addressLabel: "Dirección",

@@ -56,12 +56,12 @@ function deriveCells(log, lang) {
   if (action === "transfer" || action === "rental_return") {
     return {
       subtitle: details.assetId || "",
-      before:   details.fromLocation || (isEs ? "Sin ubicaciÃ³n" : "No location"),
-      after:    details.toLocation   || (isEs ? "Sin ubicaciÃ³n" : "No location"),
+      before:   details.fromLocation || (isEs ? "Sin ubicación" : "No location"),
+      after:    details.toLocation   || (isEs ? "Sin ubicación" : "No location"),
     };
   }
 
-  // â”€â”€ UPDATE (ediciÃ³n) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ UPDATE (edición) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” € 
   if (action === "update") {
     const before = details.before || {};
     const after  = details.after  || {};
