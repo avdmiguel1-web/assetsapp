@@ -12,7 +12,7 @@ function Row({ label, value }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "9px 0", borderBottom: "1px solid var(--border-subtle)", gap: 16 }}>
       <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", whiteSpace: "nowrap", flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: 13, color: "var(--text-primary)", textAlign: "right" }}>{value ?? "â€”"}</span>
+      <span style={{ fontSize: 13, color: "var(--text-primary)", textAlign: "right" }}>{value ?? "—"}</span>
     </div>
   );
 }
@@ -187,7 +187,7 @@ function FileItem({ file }) {
       >
         {kind === "image" && src
           ? <ResolvedImage src={src} alternateSrc={file.sourceUrl} alt={file.name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: "var(--radius-sm)", flexShrink: 0, border: "1px solid var(--border-subtle)" }} />
-          : <span style={{ fontSize: 20, flexShrink: 0 }}>{kind === "pdf" ? "ðŸ“„" : kind === "office" ? "ðŸ“Š" : "ðŸ“Ž"}</span>}
+          : <span style={{ fontSize: 20, flexShrink: 0 }}>{kind === "pdf" ? "📄" : kind === "office" ? "📋" : "📁"}</span>}
         <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={file.name}>{file.name}</span>
         <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>{fmt(file.size)}</span>
         {isPreviewable && (
@@ -307,12 +307,12 @@ export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) 
             <Row label={t.detail.status || "Estado"} value={<span className={`badge ${STATUS[asset.status] || "badge-muted"}`}>{asset.status}</span>} />
             <Row label={t.detail.country || "Pais"} value={`${FLAG_MAP[asset.country] || ""} ${asset.country}`} />
             <Row label={t.detail.location || "Ubicacion"} value={<span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} color="var(--accent-blue)" />{asset.location}</span>} />
-            <Row label={t.detail.address || "Direccion"} value={currentLocation?.address || "â€”"} />
-            <Row label={t.detail.locationDescription || "Descripcion ubicacion"} value={currentLocation?.description || "â€”"} />
-            {isRentalAsset && rentalState && <Row label={rentalCountLabelMap[rentalState.fieldKey] || "Tiempo"} value={rentalState.displayLabel || "â€”"} />}
-            {isRentalAsset && rentalKind === "date" && <Row label={t.detail.rentalDate || "Fecha alquiler"} value={rentalRangeLabel || "â€”"} />}
-            {isRentalAsset && rentalKind === "time" && <Row label={t.detail.rentalTime || "Hora alquiler"} value={rentalRangeLabel || "â€”"} />}
-            <Row label={t.detail.registered || "Registrado"} value={asset.createdAt ? new Date(asset.createdAt).toLocaleString(locale, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "â€”"} />
+            <Row label={t.detail.address || "Direccion"} value={currentLocation?.address || "—"} />
+            <Row label={t.detail.locationDescription || "Descripcion ubicacion"} value={currentLocation?.description || "—"} />
+            {isRentalAsset && rentalState && <Row label={rentalCountLabelMap[rentalState.fieldKey] || "Tiempo"} value={rentalState.displayLabel || "—"} />}
+            {isRentalAsset && rentalKind === "date" && <Row label={t.detail.rentalDate || "Fecha alquiler"} value={rentalRangeLabel || "—"} />}
+            {isRentalAsset && rentalKind === "time" && <Row label={t.detail.rentalTime || "Hora alquiler"} value={rentalRangeLabel || "—"} />}
+            <Row label={t.detail.registered || "Registrado"} value={asset.createdAt ? new Date(asset.createdAt).toLocaleString(locale, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} />
             {asset.description && (
               <div style={{ marginTop: 14 }}>
                 <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6 }}>{t.detail.description || "Descripcion"}</div>
@@ -398,7 +398,7 @@ function LiveTelemetry({ deviceId, gpsProvider = "flespi" }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
               <div style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
                 <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", color: "var(--accent-blue)", textTransform: "uppercase", marginBottom: 4 }}>Velocidad</div>
-                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 16, color: "var(--text-primary)", fontWeight: 600 }}>{telemetry.speed != null ? `${telemetry.speed} km/h` : "â€”"}</div>
+                <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 16, color: "var(--text-primary)", fontWeight: 600 }}>{telemetry.speed != null ? `${telemetry.speed} km/h` : "—"}</div>
               </div>
               <div style={{ background: "var(--bg-elevated)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
                 <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", color: "var(--accent-amber)", textTransform: "uppercase", marginBottom: 4 }}>Combustible</div>
@@ -420,7 +420,7 @@ function LiveTelemetry({ deviceId, gpsProvider = "flespi" }) {
             )}
             <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
               <Calendar size={9} />
-              {telemetry.timestamp ? new Date(telemetry.timestamp * 1000).toLocaleString("es-VE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "â€”"}
+              {telemetry.timestamp ? new Date(telemetry.timestamp * 1000).toLocaleString("es-VE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}
             </div>
           </>
         );

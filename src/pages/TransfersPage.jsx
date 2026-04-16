@@ -363,7 +363,7 @@ function TransferModal({ open, onClose }) {
                 </div>
                 {isRentalDestination && (rentalStartTime || rentalEndTime) && (
                   <div style={{ fontSize:11, color:"var(--accent-green)", marginTop:4 }}>
-                    {(t.transfers.rentalTimeLabel || "Hora alquiler")}: {formatTimeRangeValue(rentalStartTime, rentalEndTime, t.lang === "en" ? "en-US" : "es-VE") || "â€”"}
+                    {(t.transfers.rentalTimeLabel || "Hora alquiler")}: {formatTimeRangeValue(rentalStartTime, rentalEndTime, t.lang === "en" ? "en-US" : "es-VE") || "—"}
                   </div>
                 )}
                 {isRentalDestination && (rentalStartDate || rentalEndDate) && (
@@ -506,7 +506,7 @@ export default function TransfersPage() {
                         {tr.rentalSummary.label === "date"
                           ? (t.transfers.rentalDateLabel || "Fecha alquiler")
                           : (t.transfers.rentalTimeLabel || "Hora alquiler")}
-                        : {tr.rentalSummary.value || "â€”"}
+                        : {tr.rentalSummary.value || "—"}
                       </div>
                     )}
                   </div>

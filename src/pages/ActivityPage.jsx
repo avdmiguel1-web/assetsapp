@@ -42,9 +42,9 @@ function parseDateInput(value, endOfDay = false) {
  * based on action type and entity type.
  *
  * Returns { subtitle, before, after }
- *   subtitle â€” small label shown above the value (e.g. Asset ID)
- *   before   â€” value in the "Antes" column
- *   after    â€” value in the "Actualizado" column (null when not applicable)
+ *   subtitle — small label shown above the value (e.g. Asset ID)
+ *   before   — value in the "Antes" column
+ *   after    — value in the "Actualizado" column (null when not applicable)
  */
 function deriveCells(log, lang) {
   const details     = log.details || {};
@@ -75,8 +75,8 @@ function deriveCells(log, lang) {
       if (changedKey) {
         return {
           subtitle,
-          before: String(before[changedKey] ?? "â€”"),
-          after:  String(after[changedKey]  ?? "â€”"),
+          before: String(before[changedKey] ?? "—"),
+          after:  String(after[changedKey]  ?? "—"),
         };
       }
       return {
@@ -94,8 +94,8 @@ function deriveCells(log, lang) {
       if (changedKey) {
         return {
           subtitle,
-          before: String(before[changedKey] ?? "â€”"),
-          after:  String(after[changedKey]  ?? "â€”"),
+          before: String(before[changedKey] ?? "—"),
+          after:  String(after[changedKey]  ?? "—"),
         };
       }
       return {
@@ -112,8 +112,8 @@ function deriveCells(log, lang) {
       if (changedKey) {
         return {
           subtitle: "",
-          before: String(before[changedKey] ?? "â€”"),
-          after:  String(after[changedKey]  ?? "â€”"),
+          before: String(before[changedKey] ?? "—"),
+          after:  String(after[changedKey]  ?? "—"),
         };
       }
       return {
@@ -130,8 +130,8 @@ function deriveCells(log, lang) {
     if (changedKey) {
       return {
         subtitle: "",
-        before: String(before[changedKey] ?? "â€”"),
-        after:  String(after[changedKey]  ?? "â€”"),
+        before: String(before[changedKey] ?? "—"),
+        after:  String(after[changedKey]  ?? "—"),
       };
     }
     return { subtitle: "", before: isEs ? "Sin cambios" : "No changes", after: null };
@@ -141,19 +141,19 @@ function deriveCells(log, lang) {
   if (action === "create" || action === "delete") {
     if (entityType === "asset") {
       const src = details.before || details.after || details;
-      const brand   = src.brand   || "â€”";
-      const model   = src.model   || "â€”";
+      const brand   = src.brand   || "—";
+      const model   = src.model   || "—";
       const assetId = src.assetId || details.assetId || "";
       return {
         subtitle: assetId,
-        before:   `${brand} ${model}`.trim() || "â€”",
+        before:   `${brand} ${model}`.trim() || "—",
         after:    null,
       };
     }
 
     if (entityType === "user") {
       const src      = details.before || details.after || details;
-      const fullName = src.name || src.fullName || src.userName || log.entityLabel || "â€”";
+      const fullName = src.name || src.fullName || src.userName || log.entityLabel || "—";
       return {
         subtitle: "",
         before:   fullName,
@@ -163,7 +163,7 @@ function deriveCells(log, lang) {
 
     if (entityType === "category") {
       const src  = details.before || details.after || details;
-      const name = src.name || log.entityLabel || "â€”";
+      const name = src.name || log.entityLabel || "—";
       return {
         subtitle: "",
         before:   name,
@@ -173,7 +173,7 @@ function deriveCells(log, lang) {
 
     if (entityType === "location") {
       const src  = details.before || details.after || details;
-      const name = src.name || log.entityLabel || "â€”";
+      const name = src.name || log.entityLabel || "—";
       return {
         subtitle: "",
         before:   name,
@@ -183,7 +183,7 @@ function deriveCells(log, lang) {
 
     // Generic create / delete
     const src  = details.before || details.after || details;
-    const name = src.name || log.entityLabel || log.entityId || "â€”";
+    const name = src.name || log.entityLabel || log.entityId || "—";
     return {
       subtitle: "",
       before:   name,
@@ -194,7 +194,7 @@ function deriveCells(log, lang) {
   // â”€â”€ Fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return {
     subtitle: "",
-    before:   log.entityLabel || log.entityId || "â€”",
+    before:   log.entityLabel || log.entityId || "—",
     after:    null,
   };
 }
@@ -425,7 +425,7 @@ export default function ActivityPage() {
                             ? "inherit"
                             : "'IBM Plex Mono', monospace",
                         }}>
-                          {before || "â€”"}
+                          {before || "—"}
                         </span>
                       </td>
 
@@ -443,7 +443,7 @@ export default function ActivityPage() {
                             {after}
                           </span>
                         ) : (
-                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>â€”</span>
+                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
                         )}
                       </td>
 
@@ -459,7 +459,7 @@ export default function ActivityPage() {
                             </div>
                           </div>
                         ) : (
-                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>â€”</span>
+                          <span style={{ color: "var(--text-muted)", fontSize: 12 }}>—</span>
                         )}
                       </td>
                     </tr>

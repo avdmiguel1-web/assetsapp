@@ -329,7 +329,7 @@
     noCategoriesSub:"Categories organize your assets. Add the ones you need.",
     addFirst:     "Add First Category",
     inUse:        (n) => `${n} asset${n!==1?"s":""}`,
-    deleteBlocked:(name, n) => `Cannot delete "${name}" â€” it has ${n} assigned asset(s).`,
+    deleteBlocked:(name, n) => `Cannot delete "${name}" — it has ${n} assigned asset(s).`,
     deleteConfirm:(name) => `Delete category "${name}"?`,
     modalTitleNew:"New Category",
     modalTitleEdit:"Edit Category",
