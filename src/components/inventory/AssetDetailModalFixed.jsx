@@ -285,7 +285,7 @@ export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) 
               <div style={{ display: "flex", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
                 <span className={`badge ${STATUS[asset.status] || "badge-muted"}`}>{asset.status}</span>
                 <span className="badge badge-muted">{asset.category}</span>
-                {asset.hasTelemetry && <span className="badge badge-blue"><Satellite size={10} /> GPS Â· Device {asset.flespiDeviceId}</span>}
+                {asset.hasTelemetry && <span className="badge badge-blue"><Satellite size={10} /> GPS · Device {asset.flespiDeviceId}</span>}
                 {asset.plate && <span className="badge badge-muted" style={{ fontFamily: "'IBM Plex Mono',monospace" }}>{asset.plate}</span>}
               </div>
             </div>
