@@ -165,7 +165,7 @@
     rentalTimeToLabel:"Time to",
     rentalDateLabel:"Rental date",
     rentalTimeLabel:"Rental time",
-    rentalHint:"Complete only one rental range type: date or time.",
+    rentalHint:"Select only one rental range type: date or time.",
     errorRentalDates:"Select the rental dates.",
     errorRentalRange:"Select a date range or a time range for the rental.",
     errorRentalIncomplete:"Complete both fields for the selected range.",

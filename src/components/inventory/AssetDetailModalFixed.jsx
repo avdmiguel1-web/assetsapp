@@ -262,6 +262,31 @@ export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) 
 
   const handleReturn = async () => {
     setReturnError("");
+    if (!rentalState.canReturn) {
+      let remaining, unit, verb, restante;
+      if (rentalState.kind === "date") {
+        remaining = rentalState.amount;
+        unit = remaining === 1 ? "día" : "días";
+      } else {
+        const minutes = rentalState.amount;
+        if (minutes >= 60) {
+          remaining = Math.floor(minutes / 60);
+          unit = remaining === 1 ? "hora" : "horas";
+        } else {
+          remaining = minutes;
+          unit = remaining === 1 ? "minuto" : "minutos";
+        }
+      }
+      if (remaining === 1) {
+        verb = "queda";
+        restante = "restante";
+      } else {
+        verb = "quedan";
+        restante = "restantes";
+      }
+      const confirmed = window.confirm(`¿Está seguro de retornar el activo? La fecha de alquiler aún le ${verb} ${remaining} ${unit} ${restante}.`);
+      if (!confirmed) return;
+    }
     setReturning(true);
     try {
       await returnRentalAsset(asset.id);
@@ -352,7 +377,7 @@ export default function AssetDetailModalFixed({ open, onClose, asset, onEdit }) 
             <div style={{ marginRight: "auto", fontSize: 12, color: "var(--accent-red)" }}>{returnError}</div>
           )}
           {isRentalAsset && rentalState && (
-            <button className="btn btn-primary" onClick={handleReturn} disabled={!rentalState.canReturn || returning}>
+            <button className="btn btn-primary" onClick={handleReturn} disabled={returning}>
               <RotateCcw size={14} />
               {returning ? (t.detail.returning || "Retornando...") : (t.detail.returnAction || "Retornar")}
             </button>

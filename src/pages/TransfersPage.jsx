@@ -348,7 +348,7 @@ function TransferModal({ open, onClose }) {
                 </div>
               </div>
               <div style={{ fontSize:11, color:"var(--text-muted)" }}>
-                {t.transfers.rentalHint || "Completa solo un tipo de rango para el alquiler: fecha o hora."}
+                {t.transfers.rentalHint || "Selecciona solo un tipo de rango para el alquiler: fecha o hora."}
               </div>
             </div>
           )}

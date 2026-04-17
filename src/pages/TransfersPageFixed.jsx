@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, ArrowRight, Plus, X, Package, MapPin, Search, AlertCircle } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Plus, X, Package, MapPin, Search, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import ResolvedImage from "../components/common/ResolvedImage";
 import { useApp } from "../stores/AppContext";
 import { useAuth } from "../stores/AuthContext";
@@ -211,7 +211,7 @@ function TransferModal({ open, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 500 }}>
+      <div className="modal" style={{ width: 500, minHeight: 468 }}>
         <div className="modal-header">
           <div>
             <div className="modal-title">{t.transfers.modalTitle}</div>
@@ -381,7 +381,7 @@ function TransferModal({ open, onClose }) {
                 </div>
               </div>
               <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                {t.transfers.rentalHint || "Completa solo un tipo de rango para el alquiler: fecha o hora."}
+                {t.transfers.rentalHint || "Selecciona solo un tipo de rango para el alquiler: fecha o hora."}
               </div>
             </div>
           )}
@@ -438,6 +438,8 @@ export default function TransfersPageFixed() {
   const { canDo } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const locale = t.lang === "en" ? "en-US" : "es-VE";
 
   const filtered = useMemo(() => {
@@ -453,6 +455,10 @@ export default function TransfersPageFixed() {
     });
   }, [transfers, assets, locations, search]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const enriched = filtered.map((transfer) => {
     const fromLocation = findLocationRecord(locations, { name: transfer.fromLocation, country: transfer.fromCountry });
     const toLocation = findLocationRecord(locations, { name: transfer.toLocation, country: transfer.toCountry });
@@ -464,6 +470,9 @@ export default function TransfersPageFixed() {
       rentalSummary: getRentalSummary(transfer, locale),
     };
   });
+
+  const totalPages = Math.ceil(enriched.length / itemsPerPage);
+  const paginated = enriched.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div>
@@ -517,7 +526,7 @@ export default function TransfersPageFixed() {
         <div className="card"><div className="empty-state"><Search size={28} style={{ opacity: 0.3 }} /><p>{t.transfers.noResults}</p></div></div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {enriched.map((transfer) => (
+          {paginated.map((transfer) => (
             <div key={transfer.id} className="card" style={{ padding: "16px 20px" }}>
               <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
                 <div style={{ flexShrink: 0 }}>
@@ -563,6 +572,33 @@ export default function TransfersPageFixed() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "14px 16px", borderTop: "1px solid var(--border-subtle)", flexWrap: "wrap" }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+            Mostrando {paginated.length} de {enriched.length} traslados
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(currentPage - 1)}
+            >
+              <ChevronLeft size={13} /> Anterior
+            </button>
+            <span style={{ fontSize: 12, color: "var(--text-secondary)", minWidth: 90, textAlign: "center" }}>
+              Pagina {currentPage} / {totalPages}
+            </span>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(currentPage + 1)}
+            >
+              Siguiente <ChevronRight size={13} />
+            </button>
+          </div>
         </div>
       )}
 

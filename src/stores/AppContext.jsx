@@ -621,11 +621,6 @@ export function AppProvider({ children }) {
       const asset = state.assets.find((item) => item.id === assetId);
       if (!asset) throw new Error("No se encontro el activo a retornar.");
 
-      const rentalState = getRentalCountdownState(asset, new Date(), "es");
-      if (!rentalState?.canReturn) {
-        throw new Error("El activo aun no esta disponible para retorno.");
-      }
-
       const sourceTransfer = findLatestRentalTransfer(state.transfers, asset);
       if (!sourceTransfer?.fromLocation) {
         throw new Error("No se encontro la ubicacion original del alquiler.");

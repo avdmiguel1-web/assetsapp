@@ -170,7 +170,7 @@
     rentalTimeToLabel:"Hora hasta",
     rentalDateLabel:"Fecha alquiler",
     rentalTimeLabel:"Hora alquiler",
-    rentalHint:"Completa solo un tipo de rango para el alquiler: fecha o hora.",
+    rentalHint:"Seleccione solo un tipo de rango para el alquiler: fecha o hora.",
     errorRentalDates:"Selecciona las fechas de alquiler.",
     errorRentalRange:"Selecciona un rango de fecha o un rango de hora para el alquiler.",
     errorRentalIncomplete:"Completa ambos campos del rango seleccionado.",
