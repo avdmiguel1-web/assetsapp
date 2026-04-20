@@ -54,7 +54,7 @@ function LiveMap({ lat, lng, trail = [] }) {
     return () => { if (window._fleetMap) { window._fleetMap.remove(); window._fleetMap = null; } };
   }, [lat, lng, trail.length]);
   if (!lat || !lng) return null;
-  return <div id={mapId} style={{ width:"100%", height:280, borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)" }} />;
+  return <div id={mapId} style={{ width:"100%", height:280, borderRadius:"var(--radius-lg)", border:"1px solid var(--border-subtle)", position: "relative", zIndex: 1 }} />;
 }
 
 function fmtTs(unix) {

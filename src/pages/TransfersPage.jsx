@@ -476,8 +476,8 @@ export default function TransfersPage() {
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {enriched.map(tr => (
-            <div key={tr.id} className="card" style={{ padding:"16px 20px" }}>
-              <div style={{ display:"flex", gap:14, alignItems:"center" }}>
+            <div key={tr.id} className="card transfer-card" style={{ padding:"16px 20px" }}>
+              <div className="transfer-content" style={{ display:"flex", gap:14, alignItems:"center" }}>
                 <div style={{ flexShrink:0 }}>
                   {tr.asset?.profilePhoto
                     ? <ResolvedImage src={tr.asset.profilePhoto} alternateSrc={tr.asset.profilePhotoSource} alt="" style={{ width:44, height:44, borderRadius:"var(--radius-md)", objectFit:"cover", border:"1px solid var(--border-subtle)" }} />

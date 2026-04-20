@@ -54,7 +54,7 @@ git init
 git add .
 git commit -m "FleetCore v1.0"
 # Crea un repo en github.com y luego:
-git remote add origin https://github.com/trime25/gestionactivosgps.git
+git remote add origin https://github.com/USUARIO/nombreprojecto.git
 git push -u origin main
 ```
 
@@ -88,9 +88,9 @@ si da error intenta forzarlo: git push -u origin main --force
 En Vercel → proyecto → **Settings** → **Environment Variables**, agrega:
 ```
 VITE_SUPABASE_URL        = https://xxxx.supabase.co
-VITE_SUPABASE_ANON_KEY   = eyJhbG...
-VITE_FLESPI_TOKEN        = OWuoCjZ6...
-VITE_FLESPI_DEVICE_ID    = 7813187
+VITE_SUPABASE_ANON_KEY   = exyJhxbG...
+VITE_FLESPI_TOKEN        = OxWuxoCjZx6...
+VITE_FLESPI_DEVICE_ID    = 738313187
 ```
 Marca todas como **Production + Preview + Development**.
 

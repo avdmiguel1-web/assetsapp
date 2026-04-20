@@ -1001,6 +1001,12 @@ tbody tr.selected { background: var(--accent-blue-light); }
   /* ── Cards ── */
   .card { padding: 14px; border-radius: var(--radius-md); }
 
+  .transfer-card .transfer-content { flex-direction: column; gap: 10px; }
+
+  .transfer-card .transfer-content > div { padding: 8px 12px; }
+
+  .btn-mobile-icon span { display: inline; }
+
   /* ── Forms ── */
   .form-grid   { grid-template-columns: 1fr; }
   .form-grid-3 { grid-template-columns: 1fr; }
@@ -1067,6 +1073,9 @@ tbody tr.selected { background: var(--accent-blue-light); }
 
   /* ── Hide non-critical table columns on mobile ── */
   .col-hide-mobile { display: none !important; }
+
+  /* ── Button mobile icons ── */
+  .btn-mobile-icon span { display: none; }
 
   /* ── Transfer cards: stack ── */
   .transfer-card-inner { flex-direction: column !important; gap: 8px !important; }

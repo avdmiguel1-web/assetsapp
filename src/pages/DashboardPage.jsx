@@ -228,7 +228,7 @@ export default function DashboardPage({ detailAssetId, onOpenAssetDetail, onClos
 
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         {total > 0 && (
-          <div style={{ borderBottom: "1px solid var(--border-subtle)", padding: "0 20px", background: "var(--bg-elevated)", display: "flex", alignItems: "center", gap: 2, overflowX: "auto" }}>
+          <div style={{ borderBottom: "1px solid var(--border-subtle)", padding: "0 20px", background: "var(--)", display: "flex", alignItems: "center", gap: 2, overflowX: "auto" }}>
             {tabs.map((tab) => {
               const isAll = tab === "all";
               const count = isAll ? total : countByCountry(tab);
@@ -351,8 +351,8 @@ export default function DashboardPage({ detailAssetId, onOpenAssetDetail, onClos
                       { l: t.dashboard.asset, hide: false },
                       { l: t.dashboard.plate, hide: true },
                       { l: t.dashboard.category, hide: true },
-                      { l: t.dashboard.country, hide: false },
-                      { l: t.dashboard.location, hide: true },
+                      { l: t.dashboard.country, hide: true },
+                      { l: t.dashboard.location, hide: false },
                       { l: t.dashboard.status, hide: false },
                       { l: t.dashboard.gps, hide: true },
                       { l: t.dashboard.actions, hide: false },
@@ -379,7 +379,7 @@ export default function DashboardPage({ detailAssetId, onOpenAssetDetail, onClos
                             : <div style={{ width: 34, height: 34, borderRadius: "var(--radius-sm)", background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Package size={15} color="var(--text-muted)" style={{ opacity: 0.4 }} /></div>}
                           <div>
                             <div style={{ fontWeight: 700, fontSize: 13 }}>{asset.brand} {asset.model}</div>
-                            <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--text-muted)" }}>{asset.assetId || ""}</div>
+                            <div style={{ fontWeight: 700, fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--accent-amber)" }}>{asset.assetId || ""}</div>
                           </div>
                         </div>
                       </td>

@@ -1,6 +1,6 @@
 {
   "name": "Gestión de Activos",
-  "short_name": "AssetCore",
+  "short_name": "Gestión de Activos",
   "description": "Gestión de activos, flota y telemetría en tiempo real",
   "start_url": "/",
   "display": "standalone",

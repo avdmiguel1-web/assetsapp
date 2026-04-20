@@ -7,7 +7,7 @@ import { dbInsertAuditLog } from "../lib/db";
 import {
   Shield, ShieldOff, Save, ChevronDown, ChevronUp,
   X, Loader, CheckCircle, UserX, Search,
-  Pencil, Eye, EyeOff, AlertCircle
+  Pencil, Eye, EyeOff, AlertCircle, Trash2, Lock
 } from "lucide-react";
 
 async function fetchAllUsers() {
@@ -546,36 +546,38 @@ export default function UsersPage() {
                   </div>
 
                   <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <button className="btn btn-secondary btn-sm" onClick={() => setEditUser(user)} style={{ gap: 5 }}>
+                    <button className={`btn btn-secondary btn-sm ${user.role !== "admin" ? "btn-mobile-icon" : ""}`} onClick={() => setEditUser(user)} style={{ gap: 5 }}>
                       <Pencil size={13} />
-                      {lang === "en" ? "Edit" : "Editar"}
+                      <span>{lang === "en" ? "Edit" : "Editar"}</span>
                     </button>
 
-                    <button className="btn btn-secondary btn-sm" onClick={() => handleRoleToggle(user)} style={{ gap: 5 }}>
+                    <button className={`btn btn-secondary btn-sm ${user.role !== "admin" ? "btn-mobile-icon" : ""}`} onClick={() => handleRoleToggle(user)} style={{ gap: 5 }}>
                       {user.role === "admin" ? <ShieldOff size={13} /> : <Shield size={13} />}
-                      {user.role === "admin" ? (lang === "en" ? "Make User" : "Usuario") : (lang === "en" ? "Make Admin" : "Admin")}
+                      <span>{user.role === "admin" ? (lang === "en" ? "Make User" : "Usuario") : (lang === "en" ? "Make Admin" : "Admin")}</span>
                     </button>
 
                     {canDelete && (
                       <button
-                        className="btn btn-secondary btn-sm"
+                        className={`btn btn-secondary btn-sm ${user.role !== "admin" ? "btn-mobile-icon" : ""}`}
                         style={{ gap: 5, color: "var(--accent-red)" }}
                         onClick={() => handleDeleteUser(user)}
                         disabled={deletingUserId === user.id}
                       >
                         {deletingUserId === user.id
                           ? <Loader size={13} style={{ animation: "spin 0.8s linear infinite" }} />
-                          : <UserX size={13} />}
-                        {deletingUserId === user.id
-                          ? (lang === "en" ? "Deleting..." : "Eliminando...")
-                          : (lang === "en" ? "Delete" : "Eliminar")}
+                          : <Trash2 size={13} />}
+                        <span>
+                          {deletingUserId === user.id
+                            ? (lang === "en" ? "Deleting..." : "Eliminando...")
+                            : (lang === "en" ? "Delete" : "Eliminar")}
+                        </span>
                       </button>
                     )}
 
                     {user.role !== "admin" && (
-                      <button className={`btn btn-sm ${isPermOpen ? "btn-primary" : "btn-secondary"}`} onClick={() => setExpandedPerm(isPermOpen ? null : user.id)} style={{ gap: 5 }}>
-                        {isPermOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                        {lang === "en" ? "Permissions" : "Permisos"}
+                      <button className={`btn btn-sm ${isPermOpen ? "btn-primary" : "btn-secondary"} ${user.role !== "admin" ? "btn-mobile-icon" : ""}`} onClick={() => setExpandedPerm(isPermOpen ? null : user.id)} style={{ gap: 5 }}>
+                        <Lock size={13} />
+                        <span>{lang === "en" ? "Permissions" : "Permisos"}</span>
                       </button>
                     )}
                   </div>
