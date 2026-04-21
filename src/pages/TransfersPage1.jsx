@@ -476,103 +476,50 @@ export default function TransfersPage() {
       ) : (
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           {enriched.map(tr => (
-            <div key={tr.id} className="card transfer-card" style={{ padding: 0, overflow: "hidden" }}>
-
-              {/* ── FILA SUPERIOR: foto + nombre + fecha ── */}
-              <div className="tc-header" style={{
-                display: "flex", alignItems: "center", gap: 12,
-                padding: "12px 16px",
-                borderBottom: "1px solid var(--border-subtle)",
-              }}>
-                {/* Foto */}
-                <div style={{ flexShrink: 0 }}>
+            <div key={tr.id} className="card transfer-card" style={{ padding:"16px 20px" }}>
+              <div className="transfer-content" style={{ display:"flex", gap:14, alignItems:"center" }}>
+                <div style={{ flexShrink:0 }}>
                   {tr.asset?.profilePhoto
-                    ? <ResolvedImage src={tr.asset.profilePhoto} alternateSrc={tr.asset.profilePhotoSource} alt="" style={{ width: 40, height: 40, borderRadius: "var(--radius-md)", objectFit: "cover", border: "1px solid var(--border-subtle)" }} />
-                    : <div style={{ width: 40, height: 40, borderRadius: "var(--radius-md)", background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Package size={18} color="var(--text-muted)" style={{ opacity: 0.4 }} />
-                      </div>
+                    ? <ResolvedImage src={tr.asset.profilePhoto} alternateSrc={tr.asset.profilePhotoSource} alt="" style={{ width:44, height:44, borderRadius:"var(--radius-md)", objectFit:"cover", border:"1px solid var(--border-subtle)" }} />
+                    : <div style={{ width:44, height:44, borderRadius:"var(--radius-md)", background:"var(--bg-elevated)", display:"flex", alignItems:"center", justifyContent:"center" }}><Package size={20} color="var(--text-muted)" style={{ opacity:0.4 }} /></div>
                   }
                 </div>
-                {/* Nombre */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {tr.asset ? `${tr.asset.brand} ${tr.asset.model}` : tr.assetId}
-                  </div>
-                  {tr.asset?.assetId && (
-                    <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>
-                      {tr.asset.assetId}
-                    </div>
-                  )}
+                <div style={{ minWidth:140 }}>
+                  <div style={{ fontWeight:700, fontSize:13 }}>{tr.asset ? `${tr.asset.brand} ${tr.asset.model}` : tr.assetId}</div>
+                  {tr.asset?.assetId && <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:10, color:"var(--text-muted)", marginTop:2 }}>{tr.asset.assetId}</div>}
                 </div>
-                {/* Fecha siempre visible */}
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                    {tr.ts ? new Date(tr.ts).toLocaleDateString("es-VE", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                <div style={{ flex:1, display:"flex", alignItems:"center", gap:12 }}>
+                  <div style={{ flex:1, padding:"10px 14px", background:"var(--bg-elevated)", borderRadius:"var(--radius-md)", border:"1px solid var(--border-default)" }}>
+                    <div style={{ fontSize:9, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{t.transfers.origin}</div>
+                    <div style={{ fontWeight:600, fontSize:13 }}>{FLAG_MAP[tr.fromCountry]||""} {tr.fromLocation || "—"}</div>
+                    <div style={{ fontSize:11, color:"var(--text-muted)" }}>{tr.fromAddress}</div>
                   </div>
-                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 600, color: "var(--text-primary)", marginTop: 1 }}>
-                    {tr.ts ? new Date(tr.ts).toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" }) : ""}
+                  <div style={{ width:28, height:28, borderRadius:"50%", background:"var(--accent-blue-light)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    <ArrowRight size={14} color="var(--accent-blue)" />
                   </div>
-                </div>
-              </div>
-
-              {/* ── FILA INFERIOR: origen → destino ── */}
-              <div className="tc-route" style={{
-                display: "flex", alignItems: "stretch", gap: 0,
-              }}>
-                {/* Origen */}
-                <div style={{
-                  flex: 1, padding: "10px 14px",
-                  background: "var(--bg-elevated)",
-                  borderRight: "none",
-                }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>
-                    {t.transfers.origin}
-                  </div>
-                  <div style={{ fontWeight: 600, fontSize: 12 }}>
-                    {FLAG_MAP[tr.fromCountry] || ""} {tr.fromLocation || "—"}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                    {tr.fromAddress}
+                  <div style={{ flex:1, padding:"10px 14px", background:"var(--accent-green-light)", borderRadius:"var(--radius-md)", border:"1px solid rgba(15,158,106,0.2)" }}>
+                    <div style={{ fontSize:9, fontWeight:700, color:"var(--accent-green)", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>{t.transfers.destination}</div>
+                    <div style={{ fontWeight:600, fontSize:13, color:"var(--accent-green)" }}>{FLAG_MAP[tr.toCountry]||""} {tr.toLocation || "—"}</div>
+                    <div style={{ fontSize:11, color:"var(--text-secondary)" }}>{tr.toAddress}</div>
+                    {tr.rentalSummary && (
+                      <div style={{ fontSize:11, color:"var(--accent-green)", marginTop:6 }}>
+                        {tr.rentalSummary.label === "date"
+                          ? (t.transfers.rentalDateLabel || "Fecha alquiler")
+                          : (t.transfers.rentalTimeLabel || "Hora alquiler")}
+                        : {tr.rentalSummary.value || "—"}
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* Flecha central */}
-                <div className="tc-arrow-wrap" style={{
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  padding: "0 8px", flexShrink: 0,
-                  background: "var(--bg-base)",
-                }}>
-                  <div className="tc-arrow" style={{ width: 26, height: 26, borderRadius: "50%", background: "var(--accent-blue-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <ArrowRight size={13} color="var(--accent-blue)" />
+                <div style={{ textAlign:"right", flexShrink:0 }}>
+                  <div style={{ fontSize:11, color:"var(--text-muted)" }}>
+                    {tr.ts ? new Date(tr.ts).toLocaleDateString("es-VE",{day:"2-digit",month:"short",year:"numeric"}) : "—"}
                   </div>
-                </div>
-
-                {/* Destino */}
-                <div style={{
-                  flex: 1, padding: "10px 14px",
-                  background: "var(--accent-green-light)",
-                  borderLeft: "1px solid rgba(15,158,106,0.15)",
-                }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: "var(--accent-green)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>
-                    {t.transfers.destination}
+                  <div style={{ fontFamily:"'IBM Plex Mono',monospace", fontSize:11, fontWeight:600, color:"var(--text-primary)", marginTop:1 }}>
+                    {tr.ts ? new Date(tr.ts).toLocaleTimeString("es-VE",{hour:"2-digit",minute:"2-digit"}) : ""}
                   </div>
-                  <div style={{ fontWeight: 600, fontSize: 12, color: "var(--accent-green)" }}>
-                    {FLAG_MAP[tr.toCountry] || ""} {tr.toLocation || "—"}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
-                    {tr.toAddress}
-                  </div>
-                  {tr.rentalSummary && (
-                    <div style={{ fontSize: 10, color: "var(--accent-green)", marginTop: 5, fontWeight: 600 }}>
-                      {tr.rentalSummary.label === "date"
-                        ? (t.transfers.rentalDateLabel || "Fecha alquiler")
-                        : (t.transfers.rentalTimeLabel || "Hora alquiler")}
-                      : {tr.rentalSummary.value || "—"}
-                    </div>
-                  )}
                 </div>
               </div>
-
             </div>
           ))}
         </div>

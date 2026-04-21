@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../stores/AppContext";
 import { useAuth } from "../stores/AuthContext";
 import { useT } from "../i18n/index.jsx";
-import { Plus, Pencil, Trash2, MapPin, X, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, MapPin, X, Search, Upload } from "lucide-react";
 import { COUNTRY_PRESETS, findCountryPreset, flagFromCountryCode } from "../lib/countries";
+import BulkImportLocationsModal from "../components/inventory/BulkImportLocationsModal";
 import { isRentalLocationName } from "../lib/locationUtils";
 
 const EMPTY_LOCATION = { name: "", country: "", address: "", description: "" };
@@ -238,6 +239,7 @@ export default function LocationsPage() {
   const [search, setSearch] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
   const [countryOpen, setCountryOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const usedCountries = useMemo(
     () => [...new Set(locations.map((location) => location.country))].sort(),
@@ -273,6 +275,9 @@ export default function LocationsPage() {
             <button className="btn btn-secondary" onClick={() => setCountryOpen(true)}>
               <Plus size={14} /> Nuevo pais
             </button>
+            <button className="btn btn-secondary" onClick={() => setImportOpen(true)}>
+              <Upload size={14} /> Carga Masiva
+            </button>
             <button className="btn btn-primary" onClick={() => setAddOpen(true)}>
               <Plus size={14} /> {t.locations.newBtn}
             </button>
@@ -307,7 +312,16 @@ export default function LocationsPage() {
             <MapPin size={48} color="var(--accent-blue)" style={{ opacity: 0.3 }} />
             <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text-secondary)" }}>{t.locations.noLocations}</p>
             <p style={{ maxWidth: 340 }}>{t.locations.noLocationsSub}</p>
-            {canDo("location_create") && <button className="btn btn-primary" onClick={() => setAddOpen(true)}><Plus size={14} /> {t.locations.registerFirst}</button>}
+            {canDo("location_create") && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                <button className="btn btn-secondary" onClick={() => setImportOpen(true)}>
+                  <Upload size={14} /> Carga Masiva
+                </button>
+                <button className="btn btn-primary" onClick={() => setAddOpen(true)}>
+                  <Plus size={14} /> {t.locations.registerFirst}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : filtered.length === 0 ? (
@@ -352,6 +366,7 @@ export default function LocationsPage() {
       <LocationModal open={addOpen} onClose={() => setAddOpen(false)} />
       {editLoc && <LocationModal open onClose={() => setEditLoc(null)} editLocation={editLoc} />}
       <CountryModal open={countryOpen} onClose={() => setCountryOpen(false)} />
+      <BulkImportLocationsModal open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );
 }

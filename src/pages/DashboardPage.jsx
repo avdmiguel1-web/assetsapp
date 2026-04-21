@@ -385,7 +385,14 @@ export default function DashboardPage({ detailAssetId, onOpenAssetDetail, onClos
                       </td>
                       <td className="col-hide-mobile" style={{ padding: "11px 16px", verticalAlign: "middle" }}><span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 12 }}>{asset.plate || "—"}</span></td>
                       <td className="col-hide-mobile" style={{ padding: "11px 16px", verticalAlign: "middle" }}><span className="badge badge-muted" style={{ fontSize: 10 }}>{asset.category}</span></td>
-                      <td style={{ padding: "11px 16px", verticalAlign: "middle", fontSize: 13 }}>{FLAG_MAP[asset.country] || ""} {asset.country}</td>
+                      <td style={{ padding: "11px 16px", verticalAlign: "middle", fontSize: 13 }}>
+                        <div>{FLAG_MAP[asset.country] || ""} {asset.country}</div>
+                        {asset.location && (
+                          <div className="location-mobile-only" style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                            {asset.location}
+                          </div>
+                        )}
+                      </td>
                       <td className="col-hide-mobile" style={{ padding: "11px 16px", verticalAlign: "middle", fontSize: 12, color: "var(--text-secondary)" }}>{asset.location || "—"}</td>
                       <td style={{ padding: "11px 16px", verticalAlign: "middle" }}>
                         <span className={`badge ${STATUS_BADGE[asset.status] || "badge-muted"}`}>

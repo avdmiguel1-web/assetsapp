@@ -950,14 +950,10 @@ tbody tr.selected { background: var(--accent-blue-light); }
 }
 
 /* ─── MOBILE  < 768px ─── */
-/* ── Transfer card: layout de 2 filas ──────────────────────────────────── */
-.transfer-card { border-radius: var(--radius-lg); overflow: hidden; }
-.tc-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); }
-.tc-route  { display: flex; align-items: stretch; min-height: 68px; }
-
 /* ─── Helpers responsive (ocultos por defecto, visibles solo en mobile) ─── */
 .location-mobile-only { display: none; }
-/* transfer-date helpers removed — layout now uses tc-header / tc-route */
+.transfer-date-mobile  { display: none; }
+.transfer-date-desktop { display: block; }
 
 @media (max-width: 767px) {
   :root { --header-height: 56px; }
@@ -1010,7 +1006,9 @@ tbody tr.selected { background: var(--accent-blue-light); }
   /* ── Cards ── */
   .card { padding: 14px; border-radius: var(--radius-md); }
 
-  /* transfer-card ya usa layout de 2 filas nativo — sin overrides necesarios */
+  .transfer-card .transfer-content { flex-direction: column; gap: 10px; }
+
+  .transfer-card .transfer-content > div { padding: 8px 12px; }
 
   .btn-mobile-icon span { display: inline; }
 
@@ -1085,27 +1083,14 @@ tbody tr.selected { background: var(--accent-blue-light); }
   .location-mobile-only { display: block !important; }
 
   /* Traslados: fecha debajo del nombre en mobile */
-  /* transfer-date helpers removed */
+  .transfer-date-mobile  { display: block !important; }
+  .transfer-date-desktop { display: none  !important; }
 
   /* ── Button mobile icons ── */
   .btn-mobile-icon span { display: none; }
 
-  /* ── Transfer card: tc-route apilado en mobile ── */
-  .tc-route { flex-direction: column !important; }
-  /* Origen y destino ocupan todo el ancho */
-  .tc-route > div { border-left: none !important; }
-  /* Separador entre origen y destino */
-  .tc-route > div + div { border-top: 1px solid var(--border-subtle); }
-  /* Wrap de la flecha: fila horizontal centrada entre bloques */
-  .tc-arrow-wrap {
-    padding: 6px 14px !important;
-    justify-content: flex-start !important;
-    background: var(--bg-base) !important;
-    border-top: 1px solid var(--border-subtle);
-    border-bottom: 1px solid var(--border-subtle);
-  }
-  /* Flecha girada 90° para indicar "abajo" */
-  .tc-arrow { transform: rotate(90deg); }
+  /* ── Transfer cards: stack ── */
+  .transfer-card-inner { flex-direction: column !important; gap: 8px !important; }
 
   /* ── GPS map height ── */
   #gps-leaflet-map { height: 200px !important; }
