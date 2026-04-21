@@ -468,6 +468,12 @@ export default function TransfersPageFixed() {
       fromAddress: getLocationSecondaryText(fromLocation, transfer.fromAddress, transfer.fromCountry),
       toAddress: getLocationSecondaryText(toLocation, transfer.toAddress, transfer.toCountry),
       rentalSummary: getRentalSummary(transfer, locale),
+      displayDate: transfer.ts
+        ? new Date(transfer.ts).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" })
+        : "—",
+      displayTime: transfer.ts
+        ? new Date(transfer.ts).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })
+        : "",
     };
   });
 
@@ -527,32 +533,32 @@ export default function TransfersPageFixed() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {paginated.map((transfer) => (
-            <div key={transfer.id} className="card" style={{ padding: "16px 20px" }}>
-              <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                <div style={{ flexShrink: 0 }}>
+            <div key={transfer.id} className="card transfer-entry" style={{ padding: "16px 20px" }}>
+              <div className="transfer-entry__main" style={{ display: "flex", gap: 14, alignItems: "center" }}>
+                <div className="transfer-entry__asset-photo" style={{ flexShrink: 0 }}>
                   {transfer.asset?.profilePhoto
                     ? <ResolvedImage src={transfer.asset.profilePhoto} alternateSrc={transfer.asset.profilePhotoSource} alt="" style={{ width: 44, height: 44, borderRadius: "var(--radius-md)", objectFit: "cover", border: "1px solid var(--border-subtle)" }} />
-                    : <div style={{ width: 44, height: 44, borderRadius: "var(--radius-md)", background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={20} color="var(--text-muted)" style={{ opacity: 0.4 }} /></div>}
+                    : <div className="transfer-entry__asset-fallback" style={{ width: 44, height: 44, borderRadius: "var(--radius-md)", background: "var(--bg-elevated)", display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={20} color="var(--text-muted)" style={{ opacity: 0.4 }} /></div>}
                 </div>
-                <div style={{ minWidth: 140 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>{transfer.asset ? `${transfer.asset.brand} ${transfer.asset.model}` : transfer.assetId}</div>
-                  {transfer.asset?.assetId && <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{transfer.asset.assetId}</div>}
+                <div className="transfer-entry__asset-copy" style={{ minWidth: 140 }}>
+                  <div className="transfer-entry__asset-name" style={{ fontWeight: 700, fontSize: 13 }}>{transfer.asset ? `${transfer.asset.brand} ${transfer.asset.model}` : transfer.assetId}</div>
+                  {transfer.asset?.assetId && <div className="transfer-entry__asset-id" style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{transfer.asset.assetId}</div>}
                 </div>
-                <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ flex: 1, padding: "10px 14px", background: "var(--bg-elevated)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-default)" }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{t.transfers.origin}</div>
+                <div className="transfer-entry__route" style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
+                  <div className="transfer-entry__location transfer-entry__location--origin" style={{ flex: 1, padding: "10px 14px", background: "var(--bg-elevated)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-default)" }}>
+                    <div className="transfer-entry__location-label" style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{t.transfers.origin}</div>
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{FLAG_MAP[transfer.fromCountry] || ""} {transfer.fromLocation || "—"}</div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{transfer.fromAddress}</div>
                   </div>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--accent-blue-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <ArrowRight size={14} color="var(--accent-blue)" />
+                  <div className="transfer-entry__arrow" style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--accent-blue-light)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <ArrowRight size={14} color="var(--accent-blue)" className="transfer-entry__arrow-icon" />
                   </div>
-                  <div style={{ flex: 1, padding: "10px 14px", background: "var(--accent-green-light)", borderRadius: "var(--radius-md)", border: "1px solid rgba(15,158,106,0.2)" }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "var(--accent-green)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{t.transfers.destination}</div>
+                  <div className="transfer-entry__location transfer-entry__location--destination" style={{ flex: 1, padding: "10px 14px", background: "var(--accent-green-light)", borderRadius: "var(--radius-md)", border: "1px solid rgba(15,158,106,0.2)" }}>
+                    <div className="transfer-entry__location-label transfer-entry__location-label--destination" style={{ fontSize: 9, fontWeight: 700, color: "var(--accent-green)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{t.transfers.destination}</div>
                     <div style={{ fontWeight: 600, fontSize: 13, color: "var(--accent-green)" }}>{FLAG_MAP[transfer.toCountry] || ""} {transfer.toLocation || "—"}</div>
                     <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{transfer.toAddress}</div>
                     {transfer.rentalSummary && (
-                      <div style={{ fontSize: 11, color: "var(--accent-green)", marginTop: 6 }}>
+                      <div className="transfer-entry__rental-summary" style={{ fontSize: 11, color: "var(--accent-green)", marginTop: 6 }}>
                         {transfer.rentalSummary.label === "date"
                           ? (t.transfers.rentalDateLabel || "Fecha alquiler")
                           : (t.transfers.rentalTimeLabel || "Hora alquiler")}
@@ -561,12 +567,12 @@ export default function TransfersPageFixed() {
                     )}
                   </div>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                <div className="transfer-entry__meta" style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div className="transfer-entry__date" style={{ fontSize: 11, color: "var(--text-muted)" }}>
                     {transfer.ts ? new Date(transfer.ts).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : "—"}
                   </div>
-                  <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 600, color: "var(--text-primary)", marginTop: 1 }}>
-                    {transfer.ts ? new Date(transfer.ts).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) : ""}
+                  <div className="transfer-entry__time" style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 600, color: "var(--text-primary)", marginTop: 1 }}>
+                    {transfer.displayTime}
                   </div>
                 </div>
               </div>
