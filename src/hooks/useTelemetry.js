@@ -26,7 +26,14 @@ export function useTelemetry(deviceId = DEFAULT_DEVICE_ID, pollInterval = 30000,
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; if (retryRef.current) clearTimeout(retryRef.current); }; }, []);
 
   const doFetch = useCallback(async (isFirst = false) => {
-    if (!deviceId) return;
+    if (!deviceId) {
+      if (mounted.current) {
+        setTelemetry(null);
+        setError(null);
+        setLoading(false);
+      }
+      return;
+    }
     const key = `telemetry:${gpsProvider}:${deviceId}`;
     if (inFlight.has(key)) return;
     inFlight.add(key);

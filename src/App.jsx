@@ -4,6 +4,7 @@ import { SettingsProvider } from "./stores/SettingsContext";
 import { AuthProvider, useAuth } from "./stores/AuthContext";
 import { LangProvider, useT } from "./i18n/index.jsx";
 import { useProviderConfig } from "./hooks/useProviderConfig";
+import { applyBrandingToDocument } from "./lib/brandingRuntime";
 import Sidebar from "./components/ui/Sidebar";
 import Header from "./components/ui/Header";
 import SyncBanner from "./components/ui/SyncBanner";
@@ -103,6 +104,16 @@ function InactiveScreen() {
   );
 }
 
+function BrandingEffects() {
+  const { branding, company, session } = useAuth();
+
+  useEffect(() => {
+    return applyBrandingToDocument(session ? branding : {}, session ? (company?.name || "") : "");
+  }, [branding, company?.name, session]);
+
+  return null;
+}
+
 function Shell() {
   const t = useT();
   const [page, setPage] = useState("dashboard");
@@ -111,7 +122,7 @@ function Shell() {
   const [notifications, setNotifications] = useState([]);
   const [rentalClock, setRentalClock] = useState(() => Date.now());
   const { assets, locations } = useApp();
-  const { isAdmin, canDo, profile, signOut } = useAuth();
+  const { isAdmin, canDo, profile, signOut, isFeatureEnabled } = useAuth();
   const notifiedRentalKeysRef = useRef(new Set(loadStoredRentalNotifications()));
 
   useProviderConfig();
@@ -186,9 +197,9 @@ function Shell() {
     dashboard: dashboardPage,
     ...(canDo("module_locations") ? { locations: <LocationsPage /> } : {}),
     ...(canDo("module_categories") ? { categories: <CategoriesPage /> } : {}),
-    ...(canDo("module_activity") ? { activity: <ActivityPage /> } : {}),
+    ...(canDo("module_activity") && isFeatureEnabled("module.activity", true) ? { activity: <ActivityPage /> } : {}),
     ...(canDo("module_transfers") ? { transfers: <TransfersPage /> } : {}),
-    ...(canDo("module_gpshistory") ? { gpshistory: <GpsHistoryPage /> } : {}),
+    ...(canDo("module_gpshistory") && isFeatureEnabled("module.gpshistory", true) ? { gpshistory: <GpsHistoryPage /> } : {}),
     ...(canDo("module_settings") ? { settings: <SettingsPage /> } : {}),
     ...(isAdmin ? { users: <UsersPage /> } : {}),
   };
@@ -209,7 +220,7 @@ function Shell() {
         onSignOut={signOut}
       />
       <div className="main-content">
-        <Header page={currentPage} onMenuToggle={() => setSidebarOpen((open) => !open)} />
+        <Header onMenuToggle={() => setSidebarOpen((open) => !open)} />
         <div className="page-body">
           <SyncBanner />
           {pages[currentPage] ?? dashboardPage}
@@ -245,6 +256,7 @@ function AuthGate() {
 
   return (
     <SettingsProvider>
+      <BrandingEffects />
       <AppProvider>
         <Shell />
       </AppProvider>

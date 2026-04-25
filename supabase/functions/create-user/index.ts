@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { email, password, fullName } = await req.json();
+    const { email, password, fullName, companyName, companyId, role } = await req.json();
 
     if (!email || typeof email !== "string") {
       return json({ error: "A valid email is required." }, 400);
@@ -49,6 +49,9 @@ Deno.serve(async (req) => {
 
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedName = typeof fullName === "string" ? fullName.trim() : "";
+    const normalizedCompanyName = typeof companyName === "string" ? companyName.trim() : "";
+    const normalizedCompanyId = typeof companyId === "string" ? companyId.trim() : "";
+    const normalizedRole = typeof role === "string" ? role.trim().toLowerCase() : "";
 
     const { data, error } = await adminClient.auth.admin.createUser({
       email: normalizedEmail,
@@ -56,6 +59,9 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: {
         full_name: normalizedName || normalizedEmail.split("@")[0],
+        company_name: normalizedCompanyName || undefined,
+        company_id: normalizedCompanyId || undefined,
+        role: normalizedRole || undefined,
       },
     });
 

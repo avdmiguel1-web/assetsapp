@@ -56,8 +56,9 @@ export default function SyncBanner() {
           <div style={{ marginTop:6, lineHeight:1.6 }}>
             1. Verifica que el archivo <code>.env</code> esté en la raíz del proyecto<br/>
             2. Que contenga exactamente:<br/>
-            <code>VITE_SUPABASE_URL=https://nvuuecwdjsahntsncayx.supabase.co</code><br/>
-            <code>VITE_SUPABASE_ANON_KEY=sb_publishable_...</code><br/>
+            <code>VITE_SUPABASE_PROJECT_ID=wnihkxryphhypnfjwyre</code><br/>
+            <code>VITE_SUPABASE_URL=https://wnihkxryphhypnfjwyre.supabase.co</code><br/>
+            <code>VITE_SUPABASE_ANON_KEY=sb_publishable_WZkWHgiiWwI7TGvctKhSEA_cn6TfvZE</code><br/>
             3. Reinicia el servidor: <code>npm run dev</code><br/>
             4. Abre DevTools → Console para ver el error exacto
           </div>

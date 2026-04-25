@@ -22,6 +22,23 @@ async function apiFetch(path, cfg) {
   return res.json();
 }
 
+async function apiWrite(path, cfg, method, payload) {
+  const res = await fetch(`${getBase(cfg)}${path}`, {
+    method,
+    headers: {
+      ...getHeaders(cfg),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || data?.reason || `Flespi ${res.status}: ${res.statusText}`);
+  }
+  return data;
+}
+
 function parseMessage(msg) {
   if (!msg) return { isEmpty: true };
   return {
@@ -54,6 +71,13 @@ const flespiProvider = {
   fields: [
     { key:"token",   label:"Token de API",   type:"password", placeholder:"FlespiToken XXXX...", required:true },
     { key:"baseUrl", label:"URL Base",       type:"text",     placeholder:"https://flespi.io/gw (opcional)", required:false },
+  ],
+  provisionFields: [
+    { key: "name", label: "Nombre del dispositivo", type: "text", required: true, placeholder: "Ej: Camion VE-01" },
+    { key: "uniqueId", label: "IMEI / Ident", type: "text", required: true, placeholder: "Ej: 867530900000001" },
+    { key: "deviceTypeId", label: "ID de tipo de dispositivo", type: "number", required: true, placeholder: "Ej: 1234" },
+    { key: "phone", label: "Telefono / SIM", type: "text", required: false, placeholder: "Opcional" },
+    { key: "notes", label: "Notas internas", type: "text", required: false, placeholder: "Opcional" },
   ],
 
   /** Test if token is valid — tries to list devices */
@@ -93,6 +117,25 @@ const flespiProvider = {
     const json = await apiFetch(`/devices/${deviceId}/messages?from=${now - 7 * 86400}`, cfg);
     const all  = Array.isArray(json?.result) ? json.result : [];
     return all.slice(-limit).map(parseMessage);
+  },
+
+  async registerDevice(payload, cfg) {
+    const response = await apiWrite("/devices", cfg, "POST", [{
+      name: payload.name,
+      device_type_id: Number(payload.deviceTypeId),
+      configuration: {
+        ident: payload.uniqueId,
+        phone: payload.phone || undefined,
+      },
+    }]);
+
+    const result = Array.isArray(response?.result) ? response.result[0] : response?.result;
+    return {
+      externalId: String(result?.id || ""),
+      deviceId: payload.uniqueId,
+      name: payload.name,
+      platformPayload: result || response || {},
+    };
   },
 };
 

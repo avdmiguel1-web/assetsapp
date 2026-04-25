@@ -12,4 +12,20 @@ CREATE TABLE IF NOT EXISTS provider_settings (
 );
 
 ALTER TABLE provider_settings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all" ON provider_settings FOR ALL USING (true) WITH CHECK (true);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'provider_settings'
+      AND policyname = 'Allow all'
+  ) THEN
+    CREATE POLICY "Allow all"
+      ON provider_settings
+      FOR ALL
+      USING (true)
+      WITH CHECK (true);
+  END IF;
+END $$;

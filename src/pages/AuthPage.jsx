@@ -12,6 +12,7 @@ export default function AuthPage() {
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [name,     setName]     = useState("");
+  const [company,  setCompany]  = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [success,  setSuccess]  = useState("");
@@ -39,7 +40,7 @@ export default function AuthPage() {
     if (mode === "login") {
       await signIn(email, password);
     } else {
-      const res = await signUp(email, password, name);
+      const res = await signUp(email, password, name, company);
       if (res === "confirm") {
         setSuccess(es
           ? "¡Cuenta creada! Revisa tu correo para confirmar tu cuenta antes de iniciar sesión."
@@ -128,11 +129,23 @@ export default function AuthPage() {
 
               <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
                 {mode === "register" && (
-                  <div className="form-group">
-                    <label className="form-label">{es ? "Nombre completo" : "Full name"}</label>
-                    <input className="form-input" placeholder={es ? "Tu nombre" : "Your name"}
-                      value={name} onChange={e => setName(e.target.value)} />
-                  </div>
+                  <>
+                    <div className="form-group">
+                      <label className="form-label">{es ? "Nombre completo" : "Full name"}</label>
+                      <input className="form-input" placeholder={es ? "Tu nombre" : "Your name"}
+                        value={name} onChange={e => setName(e.target.value)} />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">{es ? "Empresa" : "Company"}</label>
+                      <input
+                        className="form-input"
+                        placeholder={es ? "Nombre de tu empresa" : "Your company name"}
+                        value={company}
+                        onChange={e => setCompany(e.target.value)}
+                      />
+                    </div>
+                  </>
                 )}
 
                 <div className="form-group">
@@ -166,7 +179,7 @@ export default function AuthPage() {
                 {success   && <SuccessBox msg={success} />}
 
                 <button className="btn btn-primary" onClick={handleSubmit}
-                  disabled={loading || !email || !password}
+                  disabled={loading || !email || !password || (mode === "register" && !company.trim())}
                   style={{ width:"100%", justifyContent:"center", padding:"11px", marginTop:4 }}>
                   {loading
                     ? <><Loader size={15} style={{ animation:"spin 0.8s linear infinite" }} /> {es?"Cargando...":"Loading..."}</>

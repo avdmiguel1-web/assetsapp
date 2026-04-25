@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../stores/AppContext";
 import { useSettings } from "../../stores/SettingsContext";
-import { DEFAULT_DEVICE_ID as DEVICE_ID } from "../../services/flespiService";
 import { listProviders } from "../../services/providers/registry";
 import { X, Upload, Image, Trash2, Plus, AlertCircle, Receipt, Wrench, Package } from "lucide-react";
 import { useT } from "../../i18n/index.jsx";
@@ -74,7 +73,7 @@ function FileSection({ label, icon: Icon, color, files, onAdd, onRemove, inputRe
 export default function AssetModal({ open, onClose, editAsset=null }) {
   const t = useT();
   const { addAsset, updateAsset, CATEGORIES, STATUSES, locations, assets } = useApp();
-  const { settings } = useSettings();
+  const { settings, getActiveDevice } = useSettings();
   const isEdit = !!editAsset;
   const [form,   setForm]   = useState(()=>editAsset?{...BLANK,...editAsset}:{...BLANK});
   const [errors, setErrors] = useState({});
@@ -114,6 +113,7 @@ export default function AssetModal({ open, onClose, editAsset=null }) {
 
   // Active GPS providers from settings
   const activeProviders = settings.filter(s => s.isActive);
+  const activeProviderDevice = getActiveDevice(form.gpsProvider || "flespi");
 
   const validate = () => {
     const e = {};
@@ -149,7 +149,7 @@ export default function AssetModal({ open, onClose, editAsset=null }) {
       ...form,
       location:  loc?.name    ?? "",
       country:   loc?.country ?? "",
-      flespiDeviceId: form.hasTelemetry?(form.flespiDeviceId||String(DEVICE_ID)):"",
+      flespiDeviceId: form.hasTelemetry ? (form.flespiDeviceId || activeProviderDevice?.deviceId || "") : "",
       gpsProvider: form.hasTelemetry ? form.gpsProvider : "",
     };
     try {
@@ -258,7 +258,7 @@ export default function AssetModal({ open, onClose, editAsset=null }) {
                   {/* Device ID */}
                   <div className="form-group">
                     <label className="form-label">{t.assetModal.deviceIdLabel}</label>
-                    <input className="form-input" placeholder={`Ej: ${DEVICE_ID}`} style={{ fontFamily:"'IBM Plex Mono',monospace" }} value={form.flespiDeviceId} onChange={e=>setUpper("flespiDeviceId",e.target.value)} />
+                    <input className="form-input" placeholder={`Ej: ${activeProviderDevice?.deviceId || "867530900000001"}`} style={{ fontFamily:"'IBM Plex Mono',monospace" }} value={form.flespiDeviceId} onChange={e=>setUpper("flespiDeviceId",e.target.value)} />
                   </div>
                 </div>
               )}

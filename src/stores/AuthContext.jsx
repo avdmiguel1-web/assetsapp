@@ -1,9 +1,8 @@
-/**
- * AuthContext — Supabase Auth + user profile + permissions
- */
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import { can, defaultPermissions } from "../lib/permissions";
+import { can } from "../lib/permissions";
+import { mergeCompanyBranding, mergeCompanyFlags, isCompanyFeatureEnabled } from "../lib/companyConfig";
+import { setActiveTenantScope } from "../lib/tenantScope";
 
 const AuthCtx = createContext(null);
 
@@ -27,54 +26,148 @@ async function fetchPermissions(userId) {
   return data?.permissions ?? null;
 }
 
-export function AuthProvider({ children }) {
-  const [session,     setSession]     = useState(null);
-  const [profile,     setProfile]     = useState(null);
-  const [permissions, setPermissions] = useState(null);
-  const [loading,     setLoading]     = useState(true);
-  const [authError,   setAuthError]   = useState(null);
+async function fetchCompany(companyId) {
+  if (!supabase || !companyId) return null;
+  const { data } = await supabase
+    .from("companies")
+    .select("*")
+    .eq("id", companyId)
+    .maybeSingle();
+  return data;
+}
 
-  const loadUserData = useCallback(async (userId) => {
-    const [prof, perms] = await Promise.all([
-      fetchProfile(userId),
-      fetchPermissions(userId),
-    ]);
-    setProfile(prof);
-    setPermissions(perms);
+async function fetchBranding(companyId) {
+  if (!supabase || !companyId) return null;
+  const { data } = await supabase
+    .from("company_branding")
+    .select("*")
+    .eq("company_id", companyId)
+    .maybeSingle();
+  return data;
+}
+
+async function fetchCompanyFeatures(companyId) {
+  if (!supabase || !companyId) return null;
+  const { data } = await supabase
+    .from("company_features")
+    .select("flags")
+    .eq("company_id", companyId)
+    .maybeSingle();
+  return data?.flags ?? null;
+}
+
+function normalizeBranding(rawBranding, companyName) {
+  return mergeCompanyBranding(
+    rawBranding
+      ? {
+          appName: rawBranding.app_name,
+          appSubtitle: rawBranding.app_subtitle,
+          themeColor: rawBranding.theme_color,
+          logoOriginal: rawBranding.logo_original,
+          logoHeader: rawBranding.logo_header,
+          logoIcon32: rawBranding.logo_icon_32,
+          logoIcon192: rawBranding.logo_icon_192,
+          logoIcon512: rawBranding.logo_icon_512,
+        }
+      : {},
+    companyName
+  );
+}
+
+export function AuthProvider({ children }) {
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [company, setCompany] = useState(null);
+  const [branding, setBranding] = useState(mergeCompanyBranding());
+  const [featureFlags, setFeatureFlags] = useState(mergeCompanyFlags());
+  const [permissions, setPermissions] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
+
+  const clearTenantState = useCallback(() => {
+    setProfile(null);
+    setCompany(null);
+    setBranding(mergeCompanyBranding());
+    setFeatureFlags(mergeCompanyFlags());
+    setPermissions(null);
+    setActiveTenantScope({});
   }, []);
 
+  const loadUserData = useCallback(async (userId) => {
+    const nextProfile = await fetchProfile(userId);
+    if (!nextProfile) {
+      clearTenantState();
+      return null;
+    }
+
+    const [nextPermissions, nextCompany, nextBranding, nextFeatureFlags] = await Promise.all([
+      fetchPermissions(userId),
+      fetchCompany(nextProfile.company_id),
+      fetchBranding(nextProfile.company_id),
+      fetchCompanyFeatures(nextProfile.company_id),
+    ]);
+
+    setProfile(nextProfile);
+    setPermissions(nextPermissions);
+    setCompany(nextCompany);
+    setBranding(normalizeBranding(nextBranding, nextCompany?.name || nextProfile?.company_name || ""));
+    setFeatureFlags(mergeCompanyFlags(nextFeatureFlags || {}));
+    setActiveTenantScope({
+      companyId: nextProfile.company_id,
+      companySlug: nextCompany?.slug || "",
+    });
+
+    return {
+      profile: nextProfile,
+      company: nextCompany,
+      permissions: nextPermissions,
+    };
+  }, [clearTenantState]);
+
   useEffect(() => {
-    if (!supabase) { setLoading(false); return; }
+    if (!supabase) {
+      setLoading(false);
+      return undefined;
+    }
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) loadUserData(session.user.id).finally(() => setLoading(false));
-      else setLoading(false);
+    let mounted = true;
+
+    supabase.auth.getSession().then(async ({ data: { session: nextSession } }) => {
+      if (!mounted) return;
+      setSession(nextSession);
+      if (nextSession) await loadUserData(nextSession.user.id);
+      else clearTenantState();
+      if (mounted) setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) loadUserData(session.user.id);
-      else { setProfile(null); setPermissions(null); }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+      setSession(nextSession);
+      if (nextSession) await loadUserData(nextSession.user.id);
+      else clearTenantState();
+      if (mounted) setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [loadUserData]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [loadUserData, clearTenantState]);
 
-  // ── Auth actions ──
   const signIn = useCallback(async (email, password) => {
     setAuthError(null);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setAuthError(error.message); return false; }
+    if (error) {
+      setAuthError(error.message);
+      return false;
+    }
     return true;
   }, []);
 
-  const signUp = useCallback(async (email, password, fullName) => {
+  const signUp = useCallback(async (email, password, fullName, companyName) => {
     setAuthError(null);
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedName = fullName?.trim() || normalizedEmail.split("@")[0];
+    const normalizedCompanyName = companyName?.trim() || normalizedEmail.split("@")[1] || "Empresa";
     const isLocalDev =
       typeof window !== "undefined" &&
       /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
@@ -91,7 +184,12 @@ export function AuthProvider({ children }) {
             apikey: anonKey,
             Authorization: `Bearer ${anonKey}`,
           },
-          body: JSON.stringify({ email: normalizedEmail, password, fullName: normalizedName }),
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password,
+            fullName: normalizedName,
+            companyName: normalizedCompanyName,
+          }),
         });
 
         const rawText = await response.text();
@@ -126,6 +224,10 @@ export function AuthProvider({ children }) {
     const functionMissing =
       /Failed to send a request to the Edge Function/i.test(functionMessage) ||
       /Could not find the function/i.test(functionMessage) ||
+      /Failed to fetch/i.test(functionMessage) ||
+      /NetworkError/i.test(functionMessage) ||
+      /Load failed/i.test(functionMessage) ||
+      /Network request failed/i.test(functionMessage) ||
       /create-user/i.test(functionMessage);
 
     if (/401|unauthorized|jwt/i.test(functionMessage)) {
@@ -146,8 +248,14 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
-      options: { data: { full_name: normalizedName } }
+      options: {
+        data: {
+          full_name: normalizedName,
+          company_name: normalizedCompanyName,
+        },
+      },
     });
+
     if (error) {
       if (/email rate limit exceeded/i.test(error.message || "")) {
         setAuthError("No se pudo crear el usuario porque Supabase alcanzo el limite de correos. Despliega la funcion 'create-user' para registrar usuarios sin depender del email de confirmacion.");
@@ -156,34 +264,64 @@ export function AuthProvider({ children }) {
       setAuthError(error.message);
       return false;
     }
+
     if (data.session) return true;
     return "confirm";
   }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    setProfile(null); setPermissions(null); setSession(null);
-  }, []);
+    clearTenantState();
+    setSession(null);
+  }, [clearTenantState]);
 
-  const clearError = () => setAuthError(null);
+  const clearError = useCallback(() => setAuthError(null), []);
 
-  // ── Permission helper ──
-  const canDo = useCallback((key) => {
-    return can(permissions, profile?.role, key);
-  }, [permissions, profile]);
-
-  const isAdmin = profile?.role === "admin";
-
-  return (
-    <AuthCtx.Provider value={{
-      session, profile, permissions, loading, authError,
-      isAdmin, isActive: profile?.is_active ?? true,
-      signIn, signUp, signOut, clearError, canDo,
-      refreshProfile: () => session && loadUserData(session.user.id),
-    }}>
-      {children}
-    </AuthCtx.Provider>
+  const canDo = useCallback((key) => can(permissions, profile?.role, key), [permissions, profile]);
+  const isFeatureEnabled = useCallback(
+    (key, fallback = false) => isCompanyFeatureEnabled(featureFlags, key, fallback),
+    [featureFlags]
   );
+
+  const contextValue = useMemo(() => ({
+    session,
+    profile,
+    company,
+    branding,
+    featureFlags,
+    permissions,
+    loading,
+    authError,
+    isAdmin: profile?.role === "admin",
+    isActive: profile?.is_active ?? true,
+    signIn,
+    signUp,
+    signOut,
+    clearError,
+    canDo,
+    isFeatureEnabled,
+    refreshProfile: () => session && loadUserData(session.user.id),
+  }), [
+    session,
+    profile,
+    company,
+    branding,
+    featureFlags,
+    permissions,
+    loading,
+    authError,
+    signIn,
+    signUp,
+    signOut,
+    clearError,
+    canDo,
+    isFeatureEnabled,
+    loadUserData,
+  ]);
+
+  return <AuthCtx.Provider value={contextValue}>{children}</AuthCtx.Provider>;
 }
 
-export function useAuth() { return useContext(AuthCtx); }
+export function useAuth() {
+  return useContext(AuthCtx);
+}

@@ -5,6 +5,7 @@
  * Categories: docs | invoices | repairs | accessories | photos
  */
 import { supabase } from "./supabase";
+import { buildTenantStoragePath } from "./tenantScope";
 
 const BUCKET = "fleetcore-files";
 
@@ -19,7 +20,7 @@ export async function uploadFile({ assetId, category, name, dataUrl, type }) {
   const res = await fetch(dataUrl);
   const blob = await res.blob();
 
-  const path = `${assetId}/${category}/${Date.now()}_${name}`;
+  const path = buildTenantStoragePath("assets", assetId, category, `${Date.now()}_${name}`);
 
   const { data, error } = await supabase.storage
     .from(BUCKET)
