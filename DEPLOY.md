@@ -54,28 +54,30 @@ git init
 git add .
 git commit -m "FleetCore v1.0"
 # Crea un repo en github.com y luego:
-git remote add origin https://github.com/USUARIO/nombreprojecto.git
+git remote add origin https://github.com/USUARIO/nombreprojecto.git (si da error al ejecutar este comando es porque ya tiene configurado un destino remoto con el nombre "origin", debes Cambiar la URL del "origin" existente ejecutando este comando: git remote set-url origin https://github.com/tu-usuario/tu-repositorio.git)
 git push -u origin main
 ```
 
 
-Solución al error de carga
-1
-Renombrar la rama local
-Cambiar de 'master' a 'main'
-GitHub utiliza main por defecto, pero las versiones locales de Git a veces inician con master. Ejecuta este comando para renombrarla:
-
-Bash
+### Solución al error de carga
+# 1
+# Renombrar la rama local
+# Cambiar de 'master' a 'main'
+# GitHub utiliza main por defecto, pero las versiones locales de Git a veces inician con master. Ejecuta este comando para renombrarla:
+```bash
 git branch -M main
-2
-Vincular y subir los archivos
-Empujar los cambios al repositorio remoto
-Ahora que tu rama local coincide con el nombre que espera GitHub, intenta subir de nuevo:
-
-Bash
+```
+# 2
+# Vincular y subir los archivos
+# Empujar los cambios al repositorio remoto
+# Ahora que tu rama local coincide con el nombre que espera GitHub, intenta subir de nuevo:
+```bash
 git push -u origin main
+```
+# si da error intenta forzarlo: 
+```bash 
+git push -u origin main --force
 
-si da error intenta forzarlo: git push -u origin main --force 
 
 ### 2.2 Conectar con Vercel
 1. Ve a https://vercel.com → **Add New Project**
